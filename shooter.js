@@ -4,14 +4,23 @@ const ctx = canvas.getContext('2d');
 const playerImg = new Image();
 playerImg.src = 'assets/player/PHplayer.png';
 
+// Load bullet image
+const bulletImg = new Image();
+bulletImg.src = 'assets/bullets/PHbullet.png';
+
 let playerX = 375;
 let playerY = 525;
 const playerWidth = 50;
 const playerHeight = 50;
 const playerSpeed = 5;
 
+const bullets = [];
+const bulletSpeed = 10;
+const bulletWidth = 20; // Set to your bullet image's width
+const bulletHeight = 10; // Set to your bullet image's height
+
 // Gravity and jumping
-let playerVelY = 10;
+let playerVelY = 0;
 const gravity = 0.3;
 const jumpStrength = -10;
 const groundY = 550; // Y position of the ground (canvas height - playerHeight)
@@ -19,12 +28,32 @@ const groundY = 550; // Y position of the ground (canvas height - playerHeight)
 const keys = {};
 
 let canJump = true;
+let facingLeft = false; // Track direction for flipping and shooting
 
 document.addEventListener('keydown', function(e) {
+    // Jump
     if ((e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') && playerY >= groundY && canJump) {
         playerVelY = jumpStrength;
-        canJump = false; // Prevent repeated jumps while holding
+        canJump = false;
     }
+
+    // Shoot
+    if ((e.key === 'Enter' || e.key === 'x' || e.key === 'X')) {
+        bullets.push({
+            x: facingLeft ? playerX : playerX + playerWidth,
+            y: playerY + playerHeight / 2 - bulletHeight / 2,
+            dir: facingLeft ? -1 : 1
+        });
+    }
+
+    // Only update facingLeft when moving left/right
+    if (e.key === 'ArrowLeft' || e.key === 'a') {
+        facingLeft = true;
+    }
+    if (e.key === 'ArrowRight' || e.key === 'd') {
+        facingLeft = false;
+    }
+
     keys[e.key] = true;
 });
 
@@ -36,9 +65,30 @@ document.addEventListener('keyup', function(e) {
     }
 });
 
-let facingLeft = false;
-
 function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Update bullets
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        bullets[i].x += bullets[i].dir * bulletSpeed;
+        if (bullets[i].x < -bulletWidth || bullets[i].x > canvas.width + bulletWidth) {
+            bullets.splice(i, 1);
+        }
+    }
+
+    // Draw bullets
+    for (let bullet of bullets) {
+        ctx.save();
+        ctx.translate(bullet.x, bullet.y);
+        if (bullet.dir === -1) {
+            ctx.scale(-1, 1);
+            ctx.drawImage(bulletImg, -bulletWidth, 0, bulletWidth, bulletHeight);
+        } else {
+            ctx.drawImage(bulletImg, 0, 0, bulletWidth, bulletHeight);
+        }
+        ctx.restore();
+    }
+
     // Horizontal movement
     if (keys['ArrowLeft'] || keys['a']) {
         playerX -= playerSpeed;
@@ -63,21 +113,21 @@ function draw() {
         playerVelY = 0;
     }
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
+    // Draw player
     ctx.save();
+    ctx.translate(playerX, playerY);
     if (facingLeft) {
-        ctx.translate(playerX + playerWidth, playerY);
         ctx.scale(-1, 1);
-        ctx.drawImage(playerImg, 0, 0, playerWidth, playerHeight);
+        ctx.drawImage(playerImg, -playerWidth, 0, playerWidth, playerHeight);
     } else {
-        ctx.drawImage(playerImg, playerX, playerY, playerWidth, playerHeight);
+        ctx.drawImage(playerImg, 0, 0, playerWidth, playerHeight);
     }
     ctx.restore();
 
     requestAnimationFrame(draw);
 }
 
+// Start the game loop when the player image loads
 playerImg.onload = function() {
     draw();
 };
