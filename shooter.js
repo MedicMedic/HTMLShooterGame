@@ -1,6 +1,7 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+// Load player image
 const playerImg = new Image();
 playerImg.src = 'assets/player/PHplayer.png';
 
@@ -8,45 +9,69 @@ playerImg.src = 'assets/player/PHplayer.png';
 const bulletImg = new Image();
 bulletImg.src = 'assets/bullets/PHbullet.png';
 
+// Load enemy image
+const enemyImg = new Image();
+enemyImg.src = 'assets/enemies/PHenemy.png';
+
 let playerX = 375;
 let playerY = 525;
 const playerWidth = 50;
 const playerHeight = 50;
-const playerSpeed = 5;
+let playerSpeed = 5;
+
+let touchStartTime = null;
+let flickerStartTime = null;
+let isFlickering = false;
+const originalPlayerSpeed = playerSpeed;
 
 const bullets = [];
-const bulletSpeed = 10;
-const bulletWidth = 20; // Set to your bullet image's width
-const bulletHeight = 10; // Set to your bullet image's height
+const bulletSpeed = 8;
+const bulletWidth = 20;
+const bulletHeight = 20;
 
 // Gravity and jumping
 let playerVelY = 0;
 const gravity = 0.3;
 const jumpStrength = -10;
-const groundY = 550; // Y position of the ground (canvas height - playerHeight)
+const groundY = 550;
 
-const keys = {};
+// Enemy waves
+let enemies = [];
+let wave = 1;
+let enemiesPerWave = 3;
+let waveCooldown = 2000;
+let lastWaveTime = Date.now();
 
-let canJump = true;
-let facingLeft = false; // Track direction for flipping and shooting
-
-document.addEventListener('keydown', function(e) {
-    // Jump
-    if ((e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') && playerY >= groundY && canJump) {
-        playerVelY = jumpStrength;
-        canJump = false;
-    }
-
-    // Shoot
-    if ((e.key === 'Enter' || e.key === 'x' || e.key === 'X')) {
-        bullets.push({
-            x: facingLeft ? playerX : playerX + playerWidth,
-            y: playerY + playerHeight / 2 - bulletHeight / 2,
-            dir: facingLeft ? -1 : 1
+function spawnWave() {
+    for (let i = 0; i < enemiesPerWave; i++) {
+        enemies.push({
+            x: Math.random() < 0.5 ? 0 : canvas.width - 50,
+            y: groundY,
+            width: 50,
+            height: 50,
+            speed: 1 + wave * 0.2,
+            health: 2
         });
     }
+    wave++;
+    lastWaveTime = Date.now();
+}
 
-    // Only update facingLeft when moving left/right
+function updateEnemies() {
+    for (let enemy of enemies) {
+        if (enemy.health > 0) {
+            if (enemy.x < playerX) enemy.x += enemy.speed;
+            else if (enemy.x > playerX) enemy.x -= enemy.speed;
+            enemy.y = groundY;
+        }
+    }
+}
+
+const keys = {};
+let canJump = true;
+let facingLeft = false;
+
+document.addEventListener('keydown', function(e) {
     if (e.key === 'ArrowLeft' || e.key === 'a') {
         facingLeft = true;
     }
@@ -54,12 +79,25 @@ document.addEventListener('keydown', function(e) {
         facingLeft = false;
     }
 
+    if ((e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') && playerY >= groundY && canJump) {
+        playerVelY = jumpStrength;
+        canJump = false;
+    }
+
+    // Shoot (disable if flickering)
+    if (!isFlickering && (e.key === 'Enter' || e.key === 'x' || e.key === 'X')) {
+        bullets.push({
+            x: facingLeft ? playerX : playerX + playerWidth,
+            y: playerY + playerHeight / 2 - bulletHeight / 2,
+            dir: facingLeft ? -1 : 1
+        });
+    }
+
     keys[e.key] = true;
 });
 
 document.addEventListener('keyup', function(e) {
     keys[e.key] = false;
-    // Allow jumping again when jump key is released
     if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') {
         canJump = true;
     }
@@ -89,6 +127,79 @@ function draw() {
         ctx.restore();
     }
 
+    // Update and draw enemies
+    updateEnemies();
+    for (let enemy of enemies) {
+        if (enemy.health > 0) {
+            ctx.drawImage(enemyImg, enemy.x, enemy.y, enemy.width, enemy.height);
+        }
+    }
+
+    // Bullet-enemy collision
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        for (let j = 0; j < enemies.length; j++) {
+            let enemy = enemies[j];
+            if (
+                enemy.health > 0 &&
+                bullets[i].x < enemy.x + enemy.width &&
+                bullets[i].x + bulletWidth > enemy.x &&
+                bullets[i].y < enemy.y + enemy.height &&
+                bullets[i].y + bulletHeight > enemy.y
+            ) {
+                bullets.splice(i, 1);
+                enemy.health--;
+                break;
+            }
+        }
+    }
+
+    // Player-enemy collision and flicker logic
+    let touchingEnemy = false;
+    for (let enemy of enemies) {
+        if (
+            enemy.health > 0 &&
+            playerX < enemy.x + enemy.width &&
+            playerX + playerWidth > enemy.x &&
+            playerY < enemy.y + enemy.height &&
+            playerY + playerHeight > enemy.y
+        ) {
+            touchingEnemy = true;
+            break;
+        }
+    }
+    if (touchingEnemy) {
+        if (!touchStartTime) touchStartTime = Date.now();
+        if (!isFlickering && Date.now() - touchStartTime >= 5000) {
+            playerSpeed = originalPlayerSpeed / 2;
+            flickerStartTime = Date.now();
+            isFlickering = true;
+        }
+    } else {
+        touchStartTime = null;
+    }
+
+    if (isFlickering) {
+        if (Date.now() - flickerStartTime >= 2000) {
+            playerSpeed = originalPlayerSpeed;
+            isFlickering = false;
+        }
+    }
+
+    // Flicker drawing (player flickers if isFlickering)
+    ctx.save();
+    ctx.translate(playerX, playerY);
+    if (facingLeft) {
+        ctx.scale(-1, 1);
+        if (!isFlickering || Math.floor(Date.now() / 100) % 2 === 0) {
+            ctx.drawImage(playerImg, -playerWidth, 0, playerWidth, playerHeight);
+        }
+    } else {
+        if (!isFlickering || Math.floor(Date.now() / 100) % 2 === 0) {
+            ctx.drawImage(playerImg, 0, 0, playerWidth, playerHeight);
+        }
+    }
+    ctx.restore();
+
     // Horizontal movement
     if (keys['ArrowLeft'] || keys['a']) {
         playerX -= playerSpeed;
@@ -113,21 +224,16 @@ function draw() {
         playerVelY = 0;
     }
 
-    // Draw player
-    ctx.save();
-    ctx.translate(playerX, playerY);
-    if (facingLeft) {
-        ctx.scale(-1, 1);
-        ctx.drawImage(playerImg, -playerWidth, 0, playerWidth, playerHeight);
-    } else {
-        ctx.drawImage(playerImg, 0, 0, playerWidth, playerHeight);
+    // Spawn new wave if all enemies are dead
+    if (enemies.every(e => e.health <= 0) && Date.now() - lastWaveTime > waveCooldown) {
+        spawnWave();
     }
-    ctx.restore();
 
     requestAnimationFrame(draw);
 }
 
 // Start the game loop when the player image loads
 playerImg.onload = function() {
+    spawnWave();
     draw();
 };
