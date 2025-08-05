@@ -224,9 +224,21 @@ function draw() {
         playerVelY = 0;
     }
 
-    // Spawn new wave if all enemies are dead
+    /* Spawn new wave if all enemies are dead
     if (enemies.every(e => e.health <= 0) && Date.now() - lastWaveTime > waveCooldown) {
         spawnWave();
+    }*/
+
+    // Random enemy spawn (about 1 spawn every ~1.5 seconds on average)
+    if (Math.random() < 0.01) { // 2% chance per frame (~1.2 spawns/sec at 60fps)
+        enemies.push({
+            x: Math.random() < 0.5 ? -50 : canvas.width + 50, // spawn off left or right
+            y: groundY,
+            width: 50,
+            height: 50,
+            speed: 1 + wave * 0.2,
+            health: 2
+        });
     }
 
     requestAnimationFrame(draw);
