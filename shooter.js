@@ -214,20 +214,15 @@ function draw() {
     playerVelY += gravity;
     playerY += playerVelY;
 
-    // Loop horizontally
+    /*// Loop horizontally
     if (playerX + playerWidth < 0) playerX = canvas.width;
-    if (playerX > canvas.width) playerX = -playerWidth;
+    if (playerX > canvas.width) playerX = -playerWidth;*/
 
     // Ground collision
     if (playerY >= groundY) {
         playerY = groundY;
         playerVelY = 0;
     }
-
-    /* Spawn new wave if all enemies are dead
-    if (enemies.every(e => e.health <= 0) && Date.now() - lastWaveTime > waveCooldown) {
-        spawnWave();
-    }*/
 
     // Random enemy spawn (about 1 spawn every ~1.5 seconds on average)
     if (Math.random() < 0.01) { // 2% chance per frame (~1.2 spawns/sec at 60fps)
