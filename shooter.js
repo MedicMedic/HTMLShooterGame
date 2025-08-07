@@ -17,12 +17,19 @@ enemyImg.src = 'assets/enemies/PHenemy.png'; // Ensure the enemy image path is c
 const platformImg = new Image(); // Ensure the platform image is defined
 platformImg.src = 'assets/environment/PHplatform.png'; // Ensure the platform image path is correct
 
+// Load score and lives display
+const scoreDisplay = document.getElementById('score'); // Ensure the score display element is defined
+const livesDisplay = document.getElementById('lives'); // Ensure the lives display element is defined
+
 // Set player properties
 let playerX = 375; // Center player horizontally
 let playerY = 550; // Start player on the ground
 const playerWidth = 50; // Set player width
 const playerHeight = 50; // Set player height
 let playerSpeed = 5; // Set player speed
+let playerHealth = 3; // Set player health
+let playerScore = 0; // Initialize player score
+let hasTakenDamage = false; // NEW: Track if player took damage during current flicker
 
 // Touch and flicker logic
 let touchStartTime = null; // Track when player touches an enemy
@@ -155,6 +162,49 @@ document.addEventListener('keyup', function(e) {
     }
 });
 
+// NEW: Track total time player has been in contact with enemies
+let totalTouchTime = 0;
+let lastTouchTime = null;
+
+function updateHealthLogic(touchingEnemy) {
+    const now = Date.now();
+
+    if (touchingEnemy) {
+        if (!lastTouchTime) {
+            lastTouchTime = now;
+        }
+
+        // Accumulate time since last frame touching enemy
+        totalTouchTime += now - lastTouchTime;
+        lastTouchTime = now;
+
+        // If 5 seconds of contact reached, take damage and start flicker
+        if (totalTouchTime >= 5000 && !isFlickering) {
+            playerHealth--;
+            totalTouchTime = 0;
+
+            // Update lives display
+            if (livesDisplay) livesDisplay.textContent = `Lives: ${playerHealth}`;
+
+            // Start flickering after taking damage
+            playerSpeed = originalPlayerSpeed / 2;
+            flickerStartTime = now;
+            isFlickering = true;
+        }
+
+    } else {
+        lastTouchTime = null;
+    }
+
+    // If flickering, check if flicker duration is over
+    if (isFlickering && now - flickerStartTime >= 2000) {
+        playerSpeed = originalPlayerSpeed;
+        isFlickering = false;
+    }
+}
+
+
+
 // Main game loop
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
@@ -203,39 +253,34 @@ function draw() {
                 enemy.health--; // Decrease enemy health
                 break; // Break to avoid checking the same bullet against other enemies
             }
+            // Add score increment logic
+            if (enemy.health <= 0) {
+                playerScore += 10; // Increment score for each enemy defeated
+                scoreDisplay.textContent = "Score: " + playerScore; // Update score display
+                enemies.splice(j, 1); // Remove defeated enemy
+                break; // Break to avoid checking the same enemy again
+            }
         }
     }
 
-    // Player-enemy collision and flicker logic
-    let touchingEnemy = false;
-    for (let enemy of enemies) {
-        if (
-            enemy.health > 0 &&
-            playerX < enemy.x + enemy.width &&
-            playerX + playerWidth > enemy.x &&
-            playerY < enemy.y + enemy.height &&
-            playerY + playerHeight > enemy.y
-        ) {
-            touchingEnemy = true; // Player is touching an enemy
-            break; // Break if player is touching any enemy
-        }
-    }
-    if (touchingEnemy) {
-        if (!touchStartTime) touchStartTime = Date.now();
-        if (!isFlickering && Date.now() - touchStartTime >= 5000) {
-            playerSpeed = originalPlayerSpeed / 2; // Reduce player speed when flickering starts
-            flickerStartTime = Date.now(); // Start flickering timer
-            isFlickering = true; // Set flickering state to true
-        }
-    } else {
-        touchStartTime = null; // Reset touch start time if not touching an enemy
-    }
+    // Player-enemy collision logic
+    let touchingEnemy = enemies.some(enemy =>
+        enemy.health > 0 &&
+        playerX < enemy.x + enemy.width &&
+        playerX + playerWidth > enemy.x &&
+        playerY < enemy.y + enemy.height &&
+        playerY + playerHeight > enemy.y
+    );
+    updateHealthLogic(touchingEnemy); // Call new function
 
-    if (isFlickering) {
-        if (Date.now() - flickerStartTime >= 2000) {
-            playerSpeed = originalPlayerSpeed; // Reset player speed after flickering ends
-            isFlickering = false; // Set flickering state to false
-        }
+    // End game if player health reaches 0
+    if (playerHealth <= 0) {
+        ctx.fillStyle = 'red'; // Set fill color to red
+        ctx.font = '48px Arial'; // Set font size and family
+        ctx.fillText('Game Over', canvas.width / 2 - 100, canvas.height / 2);   // Draw "Game Over" text
+        ctx.font = '24px Arial'; // Set font size and family for score
+        ctx.fillText(`Final Score: ${playerScore}`, canvas.width / 2 - 80, canvas.height / 2 + 40);
+        return; // Stop the game loop
     }
 
     // Flicker drawing (player flickers if isFlickering)
