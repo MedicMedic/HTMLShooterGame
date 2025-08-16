@@ -1,600 +1,387 @@
-// ===== Canvas & Context =====
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
+const canvas = document.getElementById('gameCanvas'); // Ensure the canvas is defined
+const ctx = canvas.getContext('2d'); // Set canvas dimensions
 
-// ======= CONFIG: types, assets, stats, gameplay tuning =======
-const CONFIG = {
-  player: {
-    width: 50,
-    height: 50,
-    speed: 5,
-    jumpStrength: -10,
-    gravity: 0.3,
-    groundY: 550,
-    flicker: { holdMs: 5000, durationMs: 2000, slowFactor: 0.5 },
-    maxHP: 100,
-    lives: 3,
-    respawnInvulnMs: 1500,
-  },
-  combat: {
-    touchDamage: 10,        // damage per "tick" from touching enemies
-    touchDamageCooldown: 500 // ms between touch damage ticks
-  },
-  bullets: {
-    // You can remove B entirely; code will gracefully ignore it.
-    A: { width: 20, height: 20, speed: 8,  src: 'assets/bullets/PHbullet.png' },
-    B: { width: 20, height: 20, speed: 10, src: 'assets/bullets/PHbulletB.png' }, // optional
-  },
-  enemies: {
-    // You can remove B; spawners randomize from whatever exists.
-    A: { width: 50, height: 50, baseSpeed: 1.2, baseHealth: 10, src: 'assets/enemies/PHenemy.png' },
-    B: { width: 50, height: 50, baseSpeed: 0.9, baseHealth: 20, src: 'assets/enemies/PHenemyB.png' },
-  },
-  sprites: {
-    player: 'assets/player/PHplayer.png',
-    platform: 'assets/environment/PHplatform.png'
-  },
-  waves: {
-    startEnemies: 3,
-    coolDownMs: 2000,
-    randomSpawnChancePerFrame: 0.01,
-    enemyJumpStrength: -8
-  },
-  platforms: [
-    { x: 0,   y: 500, width: 200, height: 30 },
+// Load player image
+const playerImg = new Image(); // Ensure the player image is defined
+playerImg.src = 'assets/player/PHplayer.png'; // Ensure the player image path is correct
+
+// Load bullet image
+const bulletImg = new Image(); // Ensure the bullet image is defined
+bulletImg.src = 'assets/bullets/PHbullet.png'; // Ensure the bullet image path is correct
+
+// Load enemy image
+const enemyImg = new Image(); // Ensure the enemy image is defined
+enemyImg.src = 'assets/enemies/PHenemy.png'; // Ensure the enemy image path is correct
+
+// Load platform image
+const platformImg = new Image(); // Ensure the platform image is defined
+platformImg.src = 'assets/environment/PHplatform.png'; // Ensure the platform image path is correct
+
+// Load score and lives display
+const scoreDisplay = document.getElementById('score'); // Ensure the score display element is defined
+const livesDisplay = document.getElementById('lives'); // Ensure the lives display element is defined
+
+// Set player properties
+let playerX = 375; // Center player horizontally
+let playerY = 550; // Start player on the ground
+const playerWidth = 50; // Set player width
+const playerHeight = 50; // Set player height
+let playerSpeed = 5; // Set player speed
+let playerHealth = 3; // Set player health
+let playerScore = 0; // Initialize player score
+let hasTakenDamage = false; // NEW: Track if player took damage during current flicker
+
+// Touch and flicker logic
+let touchStartTime = null; // Track when player touches an enemy
+let flickerStartTime = null; // Track when flickering starts
+let isFlickering = false; // Track if player is flickering
+const originalPlayerSpeed = playerSpeed; // Store original player speed for flickering
+
+// Define bullets
+const bullets = []; // Array to hold bullets
+const bulletSpeed = 8; // Speed of bullets
+const bulletWidth = 20; // Width of bullets
+const bulletHeight = 20; // Height of bullets
+
+// Define platforms
+const platforms = [
+    { x: 0, y: 500, width: 200, height: 30 },
     { x: 200, y: 400, width: 200, height: 30 },
-    { x: 600, y: 300, width: 200, height: 30 },
-  ]
-};
+    { x: 600, y: 300, width: 200, height: 30 }
+]; // Array of platforms with x, y, width, and height
 
-// ======= DAMAGE MATRIX: bulletType -> enemyType -> damage =======
-const DAMAGE_MATRIX = {
-  A: { A: 5,  B: 1  },
-  B: { A: 1,  B: 10 },
-  // Add more like: C: { A: 2, B: 2, C: 5 }
-};
+// Gravity and jumping
+let playerVelY = 0; // Vertical velocity of the player
+const gravity = 0.3; // Gravity strength
+const jumpStrength = -10; // Jump strength when player jumps
+const groundY = 550; // Y position of the ground
 
-// ======= Assets (images) =======
-const IMAGES = {
-  player: new Image(),
-  platform: new Image(),
-  bullets: {},
-  enemies: {},
-};
+// Enemy waves
+let enemies = []; // Array to hold enemies
+let wave = 1; // Current wave number
+let enemiesPerWave = 3; // Number of enemies per wave
+let waveCooldown = 2000; // Cooldown time between waves in milliseconds
+let lastWaveTime = Date.now(); // Last time a wave was spawned
 
-// Preload images by type keys in CONFIG
-function preloadImages(onAllLoaded) {
-  const toLoad = [];
+// Enemy gravity and jumping
+const enemyJumpStrength = -8; // Jump strength for enemies
+let enemyVelY = 0; // Vertical velocity for enemies
 
-  // Player & platform
-  IMAGES.player.src = CONFIG.sprites.player;
-  IMAGES.platform.src = CONFIG.sprites.platform;
-  toLoad.push(IMAGES.player, IMAGES.platform);
-
-  // Bullets
-  for (const [type, info] of Object.entries(CONFIG.bullets)) {
-    const img = new Image();
-    img.src = info.src;
-    IMAGES.bullets[type] = img;
-    toLoad.push(img);
-  }
-
-  // Enemies
-  for (const [type, info] of Object.entries(CONFIG.enemies)) {
-    const img = new Image();
-    img.src = info.src;
-    IMAGES.enemies[type] = img;
-    toLoad.push(img);
-  }
-
-  let loaded = 0;
-  toLoad.forEach(img => {
-    img.onload = () => {
-      loaded++;
-      if (loaded === toLoad.length) onAllLoaded();
-    };
-  });
-}
-
-// ======= Utility helpers =======
-function aabbOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
-  return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
-}
-
-function clamp(v, min, max) {
-  return Math.max(min, Math.min(max, v));
-}
-
-function isOnPlatform(px, py, pw, ph, platforms) {
-  for (let plat of platforms) {
-    if (
-      py + ph >= plat.y && py + ph <= plat.y + plat.height &&
-      px + pw > plat.x && px < plat.x + plat.width
-    ) {
-      return plat.y - ph; // top surface Y where the object should stand
-    }
-  }
-  return null;
-}
-
-// ======= Base Classes =======
-class Body {
-  constructor(x, y, w, h) {
-    this.x = x; this.y = y;
-    this.width = w; this.height = h;
-    this.velY = 0;
-  }
-}
-
-class Bullet {
-  constructor(x, y, dir, type) {
-    // Safe spec lookup; fallback to A; if none, skip creation by throwing
-    const rawSpec = CONFIG.bullets?.[type] || CONFIG.bullets?.A;
-    if (!rawSpec) throw new Error('No bullet types configured in CONFIG.bullets');
-
-    this.type = CONFIG.bullets?.[type] ? type : 'A';
-    this.x = x;
-    this.y = y;
-    this.dir = dir; // -1 left, 1 right
-    this.width = rawSpec.width;
-    this.height = rawSpec.height;
-    this.speed = rawSpec.speed;
-    this.dead = false;
-  }
-  update() {
-    this.x += this.dir * this.speed;
-  }
-  draw(ctx) {
-    ctx.save();
-    ctx.translate(this.x, this.y);
-    if (this.dir === -1) {
-      ctx.scale(-1, 1);
-      ctx.drawImage(IMAGES.bullets[this.type], -this.width, 0, this.width, this.height);
-    } else {
-      ctx.drawImage(IMAGES.bullets[this.type], 0, 0, this.width, this.height);
-    }
-    ctx.restore();
-  }
-  isOffscreen() {
-    return this.x < -this.width || this.x > canvas.width + this.width;
-  }
-}
-
-class Enemy extends Body {
-  constructor(x, y, type, wave) {
-    const spec = CONFIG.enemies?.[type];
-    if (!spec) throw new Error(`Unknown enemy type "${type}"`);
-    super(x, y, spec.width, spec.height);
-    this.type = type;
-    this.speed = spec.baseSpeed + wave * 0.2;
-    this.health = spec.baseHealth;
-    this.dead = false;
-  }
-  applyGravity() {
-    this.velY += CONFIG.player.gravity;
-    this.y += this.velY;
-  }
-  groundClamp(groundY) {
-    if (this.y >= groundY) {
-      this.y = groundY;
-      this.velY = 0;
-    }
-  }
-  draw(ctx) {
-    if (!this.dead && this.health > 0) {
-      ctx.drawImage(IMAGES.enemies[this.type], this.x, this.y, this.width, this.height);
-    }
-  }
-}
-
-class Player extends Body {
-  constructor(x, y) {
-    super(x, y, CONFIG.player.width, CONFIG.player.height);
-    this.baseSpeed = CONFIG.player.speed;
-    this.speed = CONFIG.player.speed;
-    this.facingLeft = false;
-
-    // State
-    this.isFlickering = false;     // slow-down flicker (after holding touch 5s)
-    this.touchStartTime = null;
-    this.flickerStartTime = null;
-
-    // Combat
-    this.hp = CONFIG.player.maxHP;
-    this.lives = CONFIG.player.lives;
-    this.invulnUntil = 0;          // timestamp until which player is invulnerable (respawn)
-    this.lastHurtAt = 0;           // rate-limit touch damage ticks
-  }
-  draw(ctx) {
-    ctx.save();
-    ctx.translate(this.x, this.y);
-    const inRespawnInvuln = Date.now() < this.invulnUntil;
-    const flickerVisible =
-      (!this.isFlickering || Math.floor(Date.now() / 100) % 2 === 0) &&
-      (!inRespawnInvuln || Math.floor(Date.now() / 100) % 2 === 0);
-
-    if (this.facingLeft) {
-      ctx.scale(-1, 1);
-      if (flickerVisible) ctx.drawImage(IMAGES.player, -this.width, 0, this.width, this.height);
-    } else {
-      if (flickerVisible) ctx.drawImage(IMAGES.player, 0, 0, this.width, this.height);
-    }
-    ctx.restore();
-  }
-  applyGravity() {
-    this.velY += CONFIG.player.gravity;
-    this.y += this.velY;
-  }
-  setFacingFromInput(keys) {
-    if (keys['arrowleft'] || keys['a']) this.facingLeft = true;
-    if (keys['arrowright'] || keys['d']) this.facingLeft = false;
-  }
-  updateFlicker(touchingEnemy) {
-    const { holdMs, durationMs } = CONFIG.player.flicker;
-    if (touchingEnemy) {
-      if (!this.touchStartTime) this.touchStartTime = Date.now();
-      if (!this.isFlickering && Date.now() - this.touchStartTime >= holdMs) {
-        this.isFlickering = true;
-        this.flickerStartTime = Date.now();
-        this.speed = this.baseSpeed * CONFIG.player.flicker.slowFactor;
-      }
-    } else {
-      this.touchStartTime = null;
-    }
-    if (this.isFlickering && Date.now() - this.flickerStartTime >= durationMs) {
-      this.isFlickering = false;
-      this.speed = this.baseSpeed;
-    }
-  }
-  takeTouchDamage(now) {
-    // No damage if invulnerable (respawn window)
-    if (now < this.invulnUntil) return false;
-
-    if (now - this.lastHurtAt >= CONFIG.combat.touchDamageCooldown) {
-      this.hp -= CONFIG.combat.touchDamage;
-      this.lastHurtAt = now;
-      return true;
-    }
-    return false;
-  }
-  respawn() {
-    this.hp = CONFIG.player.maxHP;
-    this.invulnUntil = Date.now() + CONFIG.player.respawnInvulnMs;
-    this.x = 375; // center-ish
-    this.y = CONFIG.player.groundY;
-    this.velY = 0;
-  }
-}
-
-// ======= Game Controller =======
-class Game {
-  constructor(ctx) {
-    this.ctx = ctx;
-
-    this.keys = {};      // gracious input (lowercased keys)
-    this.canJump = true;
-
-    this.platforms = CONFIG.platforms;
-    this.player = new Player(375, CONFIG.player.groundY);
-
-    this.bullets = [];   // Bullet instances
-    this.enemies = [];   // Enemy instances
-
-    // Waves / spawning
-    this.wave = 1;
-    this.enemiesPerWave = CONFIG.waves.startEnemies;
-    this.lastWaveTime = Date.now();
-
-    // Scoring / state
-    this.score = 0;
-    this.gameOver = false;
-
-    // Inputs
-    this._wireInputs();
-  }
-
-  _wireInputs() {
-    const shouldPrevent = (k) =>
-      ['arrowleft','arrowright','arrowup',' ','w','a','s','d','x','c','enter'].includes(k);
-
-    document.addEventListener('keydown', (e) => {
-      const k = e.key.toLowerCase();
-      this.keys[k] = true;
-
-      // Prevent default only for our control keys (fixes Shift+Arrow quirks without blocking all keys)
-      if (shouldPrevent(k)) e.preventDefault();
-
-      // Facing direction
-      if (k === 'arrowleft' || k === 'a') this.player.facingLeft = true;
-      if (k === 'arrowright' || k === 'd') this.player.facingLeft = false;
-
-      // Jump if grounded/platform
-      if (k === ' ' || k === 'arrowup' || k === 'w') {
-        const grounded = this._isPlayerGroundedOrOnPlatform();
-        if (grounded && this.canJump) {
-          this.player.velY = CONFIG.player.jumpStrength;
-          this.canJump = false;
+// Helper function to check collision with platforms
+function isOnPlatform(px, py, pw, ph) { // Check if object is on a platform
+    for (let plat of platforms) {
+        // Check if object is above the platform and within its width
+        if (
+            py + ph >= plat.y && py + ph <= plat.y + plat.height &&
+            px + pw > plat.x && px < plat.x + plat.width // Check if object is within platform's width
+        ) {
+            return plat.y - ph; // Return the y position where object should stand
         }
-      }
+    }
+    return null; // Return null if not on any platform
+}
 
-      // Shoot — disable when flickering
-      if (!this.player.isFlickering) {
-        if (k === 'x' || k === 'enter') this._shoot('A');
-        // IMPORTANT: Shift is NOT bound anymore (prevents the movement lock bug).
-        if (k === 'c') this._shoot('B');
-      }
+// Spawn initial wave of enemies
+function spawnWave() {
+    for (let i = 0; i < enemiesPerWave; i++) { // Spawn enemies for the current wave
+        // Randomly spawn enemies on the left or right side of the canvas
+        enemies.push({
+            x: Math.random() < 0.5 ? 0 : canvas.width - 50,
+            y: groundY,
+            width: 50,
+            height: 50,
+            speed: 1 + wave * 0.2,
+            health: 2,
+            velY: 0 // Initialize vertical velocity for the enemy
+        });
+    }
+    wave++;
+    lastWaveTime = Date.now();
+}
+
+// Update enemies' positions towards the player
+function updateEnemies() {
+    for (let enemy of enemies) {
+        if (enemy.health > 0) { // Only update alive enemies
+            // Move enemy towards player
+            if (playerX < enemy.x) {
+                enemy.x -= enemy.speed; // Move left towards player
+            } else {
+                enemy.x += enemy.speed; // Move right towards player
+            }
+        }
+        // Check if player is above the enemy
+        if (playerY < enemy.y && enemy.velY === 0) {
+            enemy.velY = enemyJumpStrength;
+        }
+    }
+}
+
+// Handle player input
+const keys = {}; // Object to track pressed keys
+let canJump = true; // Flag to allow jumping
+let facingLeft = false; // Track which direction the player is facing
+
+// Handle keydown and keyup events
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+        facingLeft = true;
+    } // Check if player is moving left
+    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+        facingLeft = false;
+    } // Check if player is moving right
+
+    // Allow jumping from ground or platform
+    document.addEventListener('keydown', function(e) {
+        let platformY = isOnPlatform(playerX, playerY, playerWidth, playerHeight); // Check if player is on a platform
+        if (
+            (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') &&
+            (playerY >= groundY || platformY !== null) // Check if player is on the ground or a platform
+        ) {
+            playerVelY = jumpStrength; // Set player's vertical velocity to jump strength
+        }
+        keys[e.key] = true; // Mark key as pressed
     });
 
-    document.addEventListener('keyup', (e) => {
-      const k = e.key.toLowerCase();
-      this.keys[k] = false;
-      if (k === ' ' || k === 'arrowup' || k === 'w') this.canJump = true;
-    });
-  }
-
-  _shoot(type) {
-    // Gracefully skip if bullet type is not configured (e.g., you removed B)
-    const spec = CONFIG.bullets?.[type];
-    if (!spec) return;
-
-    const dir = this.player.facingLeft ? -1 : 1;
-    const px = this.player.facingLeft ? this.player.x : this.player.x + this.player.width;
-    const py = this.player.y + this.player.height / 2 - spec.height / 2;
-
-    try {
-      this.bullets.push(new Bullet(px, py, dir, type));
-    } catch {
-      // No bullet types configured at all; just ignore.
-    }
-  }
-
-  spawnWave() {
-    // choose from whatever enemy types exist
-    const enemyTypes = Object.keys(CONFIG.enemies);
-    if (enemyTypes.length === 0) return;
-
-    for (let i = 0; i < this.enemiesPerWave; i++) {
-      const type = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
-      const spec = CONFIG.enemies[type];
-      const sideLeft = Math.random() < 0.5;
-      const x = sideLeft ? 0 : canvas.width - spec.width;
-      this.enemies.push(new Enemy(x, CONFIG.player.groundY, type, this.wave));
-    }
-    this.wave++;
-    this.lastWaveTime = Date.now();
-  }
-
-  _isPlayerGroundedOrOnPlatform() {
-    const { x, y, width, height, velY } = this.player;
-    if (y >= CONFIG.player.groundY && velY >= 0) return true;
-    const platY = isOnPlatform(x, y, width, height, this.platforms);
-    return platY !== null && velY >= 0;
-  }
-
-  _movePlayerHorizontal() {
-    if (this.keys['arrowleft'] || this.keys['a']) {
-      this.player.x -= this.player.speed;
-      this.player.facingLeft = true;
-    }
-    if (this.keys['arrowright'] || this.keys['d']) {
-      this.player.x += this.player.speed;
-      this.player.facingLeft = false;
-    }
-    // Wall clamp
-    this.player.x = clamp(this.player.x, 0, canvas.width - this.player.width);
-  }
-
-  _applyPlayerPhysics() {
-    this.player.applyGravity();
-
-    // Platform collision
-    const platY = isOnPlatform(this.player.x, this.player.y, this.player.width, this.player.height, this.platforms);
-    if (platY !== null && this.player.velY >= 0) {
-      this.player.y = platY;
-      this.player.velY = 0;
+    // Shoot (disable if flickering)
+    if (!isFlickering && (e.key === 'Enter' || e.key === 'x' || e.key === 'X')) {
+        bullets.push({
+            x: facingLeft ? playerX : playerX + playerWidth,
+            y: playerY + playerHeight / 2 - bulletHeight / 2,
+            dir: facingLeft ? -1 : 1
+        }); // Add a new bullet in the direction the player is facing
     }
 
-    // Ground collision
-    if (this.player.y >= CONFIG.player.groundY) {
-      this.player.y = CONFIG.player.groundY;
-      this.player.velY = 0;
+    keys[e.key] = true; // Mark key as pressed
+});
+
+document.addEventListener('keyup', function(e) {
+    keys[e.key] = false;
+    if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+        canJump = true; // Allow jumping again when the jump key is released
     }
-  }
+});
 
-  _updateEnemiesAI() {
-    for (let e of this.enemies) {
-      if (e.dead || e.health <= 0) continue;
+// NEW: Track total time player has been in contact with enemies
+let totalTouchTime = 0;
+let lastTouchTime = null;
 
-      // Move horizontally towards player
-      if (this.player.x < e.x) e.x -= e.speed;
-      else e.x += e.speed;
-
-      // Jump if player is above and enemy isn't already moving up
-      if (this.player.y < e.y && e.velY === 0) {
-        e.velY = CONFIG.waves.enemyJumpStrength;
-      }
-
-      // Apply gravity & collisions
-      e.applyGravity();
-
-      // Ground collision
-      e.groundClamp(CONFIG.player.groundY);
-
-      // Platform collision
-      const platY = isOnPlatform(e.x, e.y, e.width, e.height, this.platforms);
-      if (platY !== null && e.velY >= 0) {
-        e.y = platY;
-        e.velY = 0;
-      }
-
-      // Wall clamp
-      e.x = clamp(e.x, 0, canvas.width - e.width);
-    }
-  }
-
-  _updateBullets() {
-    for (const b of this.bullets) b.update();
-    // Remove offscreen or dead
-    this.bullets = this.bullets.filter(b => !b.isOffscreen() && !b.dead);
-  }
-
-  _bulletEnemyCollisions() {
-    for (let i = this.bullets.length - 1; i >= 0; i--) {
-      const b = this.bullets[i];
-      let hit = false;
-
-      for (let j = 0; j < this.enemies.length; j++) {
-        const e = this.enemies[j];
-        if (e.dead || e.health <= 0) continue;
-
-        if (aabbOverlap(
-          b.x, b.y, b.width, b.height,
-          e.x, e.y, e.width, e.height
-        )) {
-          const dmg = (DAMAGE_MATRIX[b.type] && DAMAGE_MATRIX[b.type][e.type]) || 0;
-          e.health -= dmg;
-          if (e.health <= 0) {
-            e.dead = true;
-            this.score += 100; // ✅ score on kill
-          }
-          b.dead = true;
-          hit = true;
-          break;
-        }
-      }
-      if (hit) this.bullets.splice(i, 1);
-    }
-  }
-
-  _playerEnemyContactAndFlicker() {
-    let touching = false;
+function updateHealthLogic(touchingEnemy) {
     const now = Date.now();
 
-    for (const e of this.enemies) {
-      if (e.dead || e.health <= 0) continue;
-      if (aabbOverlap(
-        this.player.x, this.player.y, this.player.width, this.player.height,
-        e.x, e.y, e.width, e.height
-      )) {
-        touching = true;
-
-        // Touch damage with cooldown, both stay alive
-        const damaged = this.player.takeTouchDamage(now);
-        if (damaged && this.player.hp <= 0) {
-          // Lose a life, respawn or game over
-          this.player.lives -= 1;
-          if (this.player.lives >= 0) {
-            this.player.respawn();
-          } else {
-            this.gameOver = true;
-          }
+    if (touchingEnemy) {
+        if (!lastTouchTime) {
+            lastTouchTime = now;
         }
-        // no break; allow multiple overlaps but damage is cooldown-limited
-      }
+
+        // Accumulate time since last frame touching enemy
+        totalTouchTime += now - lastTouchTime;
+        lastTouchTime = now;
+
+        // If 5 seconds of contact reached, take damage and start flicker
+        if (totalTouchTime >= 5000 && !isFlickering) {
+            playerHealth--;
+            totalTouchTime = 0;
+
+            // Update lives display
+            if (livesDisplay) livesDisplay.textContent = `Lives: ${playerHealth}`;
+
+            // Start flickering after taking damage
+            playerSpeed = originalPlayerSpeed / 2;
+            flickerStartTime = now;
+            isFlickering = true;
+        }
+
+    } else {
+        lastTouchTime = null;
     }
 
-    // Flicker slow after holding touch for long, as in your original logic
-    this.player.updateFlicker(touching);
-  }
-
-  _drawPlatforms() {
-    for (let plat of this.platforms) {
-      this.ctx.drawImage(IMAGES.platform, plat.x, plat.y, plat.width, plat.height);
+    // If flickering, check if flicker duration is over
+    if (isFlickering && now - flickerStartTime >= 2000) {
+        playerSpeed = originalPlayerSpeed;
+        isFlickering = false;
     }
-  }
-
-  _drawHUD() {
-    this.ctx.fillStyle = 'white';
-    this.ctx.font = '20px Arial';
-    this.ctx.fillText(`Score: ${this.score}`, 20, 30);
-    this.ctx.fillText(`HP: ${Math.max(0, this.player.hp)} / ${CONFIG.player.maxHP}`, 20, 60);
-    this.ctx.fillText(`Lives: ${Math.max(0, this.player.lives)}`, 20, 90);
-
-    if (this.gameOver) {
-      this.ctx.fillStyle = 'red';
-      this.ctx.font = '40px Arial';
-      this.ctx.fillText('GAME OVER', canvas.width / 2 - 120, canvas.height / 2);
-    }
-  }
-
-  _drawAll() {
-    this.ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Bullets
-    for (const b of this.bullets) b.draw(this.ctx);
-
-    // Enemies
-    for (const e of this.enemies) e.draw(this.ctx);
-
-    // Player
-    this.player.draw(this.ctx);
-
-    // Platforms
-    this._drawPlatforms();
-
-    // HUD
-    this._drawHUD();
-  }
-
-  _maybeRandomSpawn() {
-    const enemyTypes = Object.keys(CONFIG.enemies);
-    if (enemyTypes.length === 0) return;
-
-    if (Math.random() < CONFIG.waves.randomSpawnChancePerFrame) {
-      const type = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
-      const spec = CONFIG.enemies[type];
-      const sideLeft = Math.random() < 0.5;
-      const x = sideLeft ? -spec.width : canvas.width + spec.width;
-      this.enemies.push(new Enemy(x, CONFIG.player.groundY, type, this.wave));
-    }
-  }
-
-  _maybeSpawnWave() {
-    // Spawn a new wave after cooldown if there are no alive enemies
-    const alive = this.enemies.some(e => !e.dead && e.health > 0);
-    const timeSince = Date.now() - this.lastWaveTime;
-    if (!alive && timeSince >= CONFIG.waves.coolDownMs) {
-      this.spawnWave();
-    }
-  }
-
-  update() {
-    if (this.gameOver) return;
-
-    // Movement
-    this._movePlayerHorizontal();
-    this._applyPlayerPhysics();
-
-    // Enemies
-    this._updateEnemiesAI();
-
-    // Bullets
-    this._updateBullets();
-
-    // Collisions
-    this._bulletEnemyCollisions();
-    this._playerEnemyContactAndFlicker();
-
-    // Spawns
-    this._maybeRandomSpawn();
-    this._maybeSpawnWave();
-
-    // Cleanup dead enemies
-    this.enemies = this.enemies.filter(e => !e.dead);
-  }
-
-  frame() {
-    this.update();
-    this._drawAll();
-    if (!this.gameOver) {
-      requestAnimationFrame(() => this.frame());
-    }
-  }
 }
 
-// ======= Boot =======
-preloadImages(() => {
-  const game = new Game(ctx);
-  game.spawnWave();
-  game.frame();
-});
+
+
+// Main game loop
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
+
+    // Update bullets
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        bullets[i].x += bullets[i].dir * bulletSpeed; // Move bullets in the direction they are facing
+        if (bullets[i].x < -bulletWidth || bullets[i].x > canvas.width + bulletWidth) {
+            bullets.splice(i, 1); // Remove bullets that go off screen
+        }
+    }
+
+    // Draw bullets
+    for (let bullet of bullets) {
+        ctx.save(); // Save the current context
+        ctx.translate(bullet.x, bullet.y); // Translate context to bullet position
+        if (bullet.dir === -1) {
+            ctx.scale(-1, 1); // Flip context for left-facing bullets
+            ctx.drawImage(bulletImg, -bulletWidth, 0, bulletWidth, bulletHeight); // Draw left-facing bullet
+        } else {
+            ctx.drawImage(bulletImg, 0, 0, bulletWidth, bulletHeight); // Draw right-facing bullet
+        }
+        ctx.restore();
+    }
+
+    // Update and draw enemies
+    updateEnemies(); // Update enemy positions
+    for (let enemy of enemies) {
+        if (enemy.health > 0) {
+            ctx.drawImage(enemyImg, enemy.x, enemy.y, enemy.width, enemy.height); // Draw enemy if it is alive
+        }
+    }
+
+    // Bullet-enemy collision
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        for (let j = 0; j < enemies.length; j++) {
+            let enemy = enemies[j];
+            if (
+                enemy.health > 0 &&
+                bullets[i].x < enemy.x + enemy.width &&
+                bullets[i].x + bulletWidth > enemy.x &&
+                bullets[i].y < enemy.y + enemy.height &&
+                bullets[i].y + bulletHeight > enemy.y
+            ) {
+                bullets.splice(i, 1); // Remove bullet on collision
+                enemy.health--; // Decrease enemy health
+                break; // Break to avoid checking the same bullet against other enemies
+            }
+            // Add score increment logic
+            if (enemy.health <= 0) {
+                playerScore += 10; // Increment score for each enemy defeated
+                scoreDisplay.textContent = "Score: " + playerScore; // Update score display
+                enemies.splice(j, 1); // Remove defeated enemy
+                break; // Break to avoid checking the same enemy again
+            }
+        }
+    }
+
+    // Player-enemy collision logic
+    let touchingEnemy = enemies.some(enemy =>
+        enemy.health > 0 &&
+        playerX < enemy.x + enemy.width &&
+        playerX + playerWidth > enemy.x &&
+        playerY < enemy.y + enemy.height &&
+        playerY + playerHeight > enemy.y
+    );
+    updateHealthLogic(touchingEnemy); // Call new function
+
+    // End game if player health reaches 0
+    if (playerHealth <= 0) {
+        ctx.fillStyle = 'red'; // Set fill color to red
+        ctx.font = '48px Arial'; // Set font size and family
+        ctx.fillText('Game Over', canvas.width / 2 - 100, canvas.height / 2);   // Draw "Game Over" text
+        ctx.font = '24px Arial'; // Set font size and family for score
+        ctx.fillText(`Final Score: ${playerScore}`, canvas.width / 2 - 80, canvas.height / 2 + 40);
+        return; // Stop the game loop
+    }
+
+    // Flicker drawing (player flickers if isFlickering)
+    ctx.save(); // Save the current context
+    ctx.translate(playerX, playerY); // Translate context to player position
+    if (facingLeft) {
+        ctx.scale(-1, 1); // Flip context for left-facing player
+        if (!isFlickering || Math.floor(Date.now() / 100) % 2 === 0) { // Flicker effect
+            ctx.drawImage(playerImg, -playerWidth, 0, playerWidth, playerHeight); // Draw left-facing player
+        }
+    } else {
+        if (!isFlickering || Math.floor(Date.now() / 100) % 2 === 0) { // Flicker effect
+            ctx.drawImage(playerImg, 0, 0, playerWidth, playerHeight); // Draw right-facing player
+        }
+    }
+    ctx.restore();
+
+    // Horizontal movement
+    if (keys['ArrowLeft'] || keys['a']) {
+        playerX -= playerSpeed; // Move player left
+        facingLeft = true; // Set facing direction to left
+    }
+    if (keys['ArrowRight'] || keys['d']) {
+        playerX += playerSpeed; // Move player right
+        facingLeft = false; // Set facing direction to right
+    }
+
+    // Gravity and vertical movement
+    playerVelY += gravity; // Apply gravity to player
+    playerY += playerVelY; // Update player's vertical position
+
+    // Platform collision
+    let platformY = isOnPlatform(playerX, playerY, playerWidth, playerHeight);
+    if (platformY !== null && playerVelY >= 0) { // Check if player is on a platform
+        playerY = platformY; // Set player's vertical position to platform's top
+        playerVelY = 0; // Reset vertical velocity
+    }
+
+    /*// Loop horizontally
+    if (playerX + playerWidth < 0) playerX = canvas.width;
+    if (playerX > canvas.width) playerX = -playerWidth;*/
+
+    // Wall collision
+    if (playerX < 0) playerX = 0; // Prevent player from going off the left edge
+    if (playerX + playerWidth > canvas.width) playerX = canvas.width - playerWidth; // Prevent player from going off the right edge
+
+    // Ground collision
+    if (playerY >= groundY) { // Check if player is on the ground
+        playerY = groundY; // Set player's vertical position to ground level
+        playerVelY = 0; // Reset vertical velocity
+    }
+
+    // Enemy wall collision
+    for (let enemy of enemies) {
+        if (enemy.x < 0) enemy.x = 0; // Prevent enemy from going off the left edge
+        if (enemy.x + enemy.width > canvas.width) enemy.x = canvas.width - enemy.width; // Prevent enemy from going off the right edge
+    }
+
+    // Apply gravity and vertical movement for enemies
+    for (let enemy of enemies) {
+        enemy.velY += gravity;
+        enemy.y += enemy.velY;
+
+        // Enemy platform or ground collision
+        if (enemy.y >= groundY) {
+            enemy.y = groundY;
+            enemy.velY = 0;
+        }
+
+        // Platform collision for enemies
+        let enemyPlatformY = isOnPlatform(enemy.x, enemy.y, enemy.width, enemy.height);
+        if (enemyPlatformY !== null && enemy.velY >= 0) {
+            enemy.y = enemyPlatformY;
+            enemy.velY = 0;
+        }
+    }
+
+
+    // Draw platforms
+    for (let plat of platforms) {
+        ctx.drawImage(platformImg, plat.x, plat.y, plat.width, plat.height); // Draw each platform
+    }
+
+    // Random enemy spawn (about 1 spawn every ~1.5 seconds on average)
+    if (Math.random() < 0.01) { // 2% chance per frame (~1.2 spawns/sec at 60fps)
+        enemies.push({
+            x: Math.random() < 0.5 ? -50 : canvas.width + 50, // spawn off left or right
+            y: groundY,
+            width: 50,
+            height: 50,
+            speed: 1 + wave * 0.2,
+            health: 2,
+            velY: 0 // Initialize vertical velocity for the enemy
+        }); // Add a new enemy to the array
+    }
+
+    requestAnimationFrame(draw); // Request the next frame to continue the game loop
+}
+
+// Start the game loop when the player image loads
+playerImg.onload = function() {
+    spawnWave();
+    draw();
+};
