@@ -25,12 +25,14 @@ const CONFIG = {
     touchDamageCooldown: 500
   },
   bullets: {
-    A: { width: 20, height: 20, speed: 8,  src: 'assets/bullets/PHbullet.png' },
-    B: { width: 20, height: 20, speed: 10, src: 'assets/bullets/PHbulletB.png' },
+    1: { width: 20, height: 20, speed: 8,  src: 'assets/bullets/PHbullet.png' },
+    2: { width: 20, height: 20, speed: 10, src: 'assets/bullets/PHbulletB.png' },
+    3: { width: 20, height: 20, speed: 12, src: 'assets/bullets/PHbulletC.png' }
   },
+  bulletTypes: [1, 2, 3], // order of bullet types for cycling
   enemies: {
-    A: { width: 50, height: 50, baseSpeed: 1.2, baseHealth: 10, src: 'assets/enemies/PHenemy.png' },
-    B: { width: 50, height: 50, baseSpeed: 0.9, baseHealth: 20, src: 'assets/enemies/PHenemyB.png' },
+    1: { width: 50, height: 50, baseSpeed: 1.2, baseHealth: 10, src: 'assets/enemies/PHenemy.png' },
+    2: { width: 50, height: 50, baseSpeed: 0.9, baseHealth: 20, src: 'assets/enemies/PHenemyB.png' },
   },
   sprites: {
     player: 'assets/player/PHplayer.png',
@@ -51,8 +53,9 @@ const CONFIG = {
 
 // ======= DAMAGE MATRIX =======
 const DAMAGE_MATRIX = {
-  A: { A: 5,  B: 1  },
-  B: { A: 1,  B: 10 },
+  1: { 1: 5, 2: 1  },
+  2: { 1: 1, 2: 10 },
+  3: { 1: 10, 2: 10 },
 };
 
 // ======= Assets (images) =======
@@ -129,10 +132,10 @@ class Body {
 
 class Bullet {
   constructor(x, y, dir, type) {
-    const rawSpec = CONFIG.bullets?.[type] || CONFIG.bullets?.A;
+    const rawSpec = CONFIG.bullets?.[type] || CONFIG.bullets?.[1];
     if (!rawSpec) throw new Error('No bullet types configured in CONFIG.bullets');
 
-    this.type = CONFIG.bullets?.[type] ? type : 'A';
+    this.type = CONFIG.bullets?.[type] ? type : 1;
     this.x = x;
     this.y = y;
     this.dir = dir; // -1 left, 1 right
@@ -284,6 +287,7 @@ class Game {
     this.player = new Player(375, CONFIG.player.groundY);
     this.bullets = [];
     this.enemies = [];
+    this.currentBullet = 1;
     this.wave = 1;
     this.enemiesPerWave = CONFIG.waves.startEnemies;
     this.lastWaveTime = Date.now();
@@ -294,9 +298,11 @@ class Game {
     this.updateHUD();
   }
 
+
+
   _wireInputs() {
     const shouldPrevent = (k) =>
-      ['arrowleft','arrowright','arrowup',' ','w','a','s','d','x','c','enter'].includes(k);
+      ['arrowleft','arrowright','arrowup',' ','w','a','s','d','x','enter'].includes(k);
 
     document.addEventListener('keydown', (e) => {
       const k = e.key.toLowerCase();
@@ -317,8 +323,14 @@ class Game {
 
       // Shoot — disabled when flickering
       if (!this.player.isFlickering) {
-        if (k === 'x' || k === 'enter') this._shoot('A');
-        if (k === 'c') this._shoot('B');
+        if (k === 'x' || k === 'enter') this._shoot(this.currentBullet);
+      }
+
+      // Bullet type switch
+      if (k === 'c') {
+        const idx = CONFIG.bulletTypes.indexOf(this.currentBullet);
+        const nextIdx = (idx + 1) % CONFIG.bulletTypes.length;
+        this.currentBullet = CONFIG.bulletTypes[nextIdx];
       }
     });
 
