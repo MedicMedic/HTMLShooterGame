@@ -33,6 +33,7 @@ const CONFIG = {
   enemies: {
     1: { width: 50, height: 50, baseSpeed: 1.2, baseHealth: 10, src: 'assets/enemies/PHenemy.png' },
     2: { width: 50, height: 50, baseSpeed: 0.9, baseHealth: 20, src: 'assets/enemies/PHenemyB.png' },
+    3: { width: 50, height: 50, baseSpeed: 1.0, baseHealth: 15, src: 'assets/enemies/PHenemyC.png' }
   },
   sprites: {
     player: 'assets/player/PHplayer.png',
@@ -53,9 +54,9 @@ const CONFIG = {
 
 // ======= DAMAGE MATRIX =======
 const DAMAGE_MATRIX = {
-  1: { 1: 5, 2: 1  },
-  2: { 1: 1, 2: 10 },
-  3: { 1: 10, 2: 10 },
+  1: { 1: 5, 2: 1, 3: 10 },
+  2: { 1: 1, 2: 10, 3: 10 },
+  3: { 1: 10, 2: 10, 3: 10 },
 };
 
 // ======= Assets (images) =======
