@@ -25,11 +25,16 @@ const CONFIG = {
     touchDamageCooldown: 500
   },
   bullets: {
-    1: { width: 20, height: 20, speed: 8, src: 'assets/bullets/PHbullet.png' },
-    2: { width: 20, height: 20, speed: 10, src: 'assets/bullets/PHbulletB.png' },
-    3: { width: 20, height: 20, speed: 12, src: 'assets/bullets/PHbulletC.png' }
+    1: { width: 20, height: 20, speed: 6, src: 'assets/bullets/bullet1.png' },
+    2: { width: 20, height: 20, speed: 6, src: 'assets/bullets/bullet2.png' },
+    3: { width: 20, height: 20, speed: 7, src: 'assets/bullets/bullet3.png' },
+    4: { width: 20, height: 20, speed: 7, src: 'assets/bullets/bullet4.png' },
+    5: { width: 20, height: 20, speed: 8, src: 'assets/bullets/bullet5.png' },
+    6: { width: 20, height: 20, speed: 9, src: 'assets/bullets/bullet6.png' },
+    7: { width: 20, height: 20, speed: 10, src: 'assets/bullets/bullet7.png' },
+    8: { width: 20, height: 20, speed: 12, src: 'assets/bullets/bullet8.png' },
   },
-  bulletTypes: [1, 2, 3],
+  bulletTypes: [1, 2, 3, 4, 5, 6, 7, 8],
   enemies: {
     1: { width: 50, height: 50, baseSpeed: 1.2, baseHealth: 10, src: 'assets/enemies/PHenemy.png' },
     2: { width: 50, height: 50, baseSpeed: 0.9, baseHealth: 20, src: 'assets/enemies/PHenemyB.png' },
@@ -51,11 +56,16 @@ const CONFIG = {
   ]
 };
 
-// ======= DAMAGE MATRIX =======
+// ======= DAMAGE MATRIX ======= temp values
 const DAMAGE_MATRIX = {
   1: { 1: 5, 2: 1, 3: 10 },
   2: { 1: 1, 2: 10, 3: 10 },
   3: { 1: 10, 2: 10, 3: 10 },
+  4: { 1: 10, 2: 10, 3: 10 },
+  5: { 1: 10, 2: 10, 3: 10 },
+  6: { 1: 10, 2: 10, 3: 10 },
+  7: { 1: 10, 2: 10, 3: 10 },
+  8: { 1: 10, 2: 10, 3: 10 }
 };
 
 // ======= Assets =======
