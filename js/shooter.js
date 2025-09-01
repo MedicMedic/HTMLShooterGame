@@ -41,7 +41,15 @@ const CONFIG = {
     3: { width: 50, height: 50, baseSpeed: 1.0, baseHealth: 15, src: 'assets/enemies/PHenemyC.png' }
   },
   sprites: {
-    player: 'assets/player/PHplayer.png',
+    player: 'assets/player/player_idle.png',
+    playerWalk: [
+      'assets/player/player_walking_1.png',
+      'assets/player/player_idle.png',
+      'assets/player/player_walking_2.png',
+      'assets/player/player_idle.png',
+    ],
+    playerJump: 'assets/player/player_jump.png',
+    playerThrow: 'assets/player/player_throw.png',
     platform: 'assets/environment/PHplatform.png'
   },
   waves: {
@@ -140,39 +148,147 @@ class Enemy extends Body {
 class Player extends Body {
   constructor(x, y) {
     super(x, y, CONFIG.player.width, CONFIG.player.height);
-    this.baseSpeed = CONFIG.player.speed; this.speed = this.baseSpeed;
-    this.facingLeft = false; this.isFlickering = false;
-    this.touchStartTime = null; this.flickerStartTime = null;
-    this.hp = CONFIG.player.maxHP; this.lives = CONFIG.player.lives;
-    this.invulnUntil = 0; this.lastHurtAt = 0;
+    this.baseSpeed = CONFIG.player.speed;
+    this.speed = this.baseSpeed;
+
+    this.facingLeft = false;
+    this.isFlickering = false;
+    this.isJumping = false;
+    this.didThrow = false;
+    this.touchStartTime = null;
+    this.flickerStartTime = null;
+
+    this.hp = CONFIG.player.maxHP;
+    this.lives = CONFIG.player.lives;
+    this.invulnUntil = 0;
+    this.lastHurtAt = 0;
+
+    // === Animation ===
+    this.idleSprite = new Image();
+    this.idleSprite.src = CONFIG.sprites.player;
+
+    this.walkingSprites = [];
+    CONFIG.sprites.playerWalk.forEach(src => {
+      const img = new Image();
+      img.src = src;
+      this.walkingSprites.push(img);
+    });
+    this.jumpSprite = new Image();
+    this.jumpSprite.src = CONFIG.sprites.playerJump;
+    this.throwSprite = new Image();
+    this.throwSprite.src = CONFIG.sprites.playerThrow;
+
+    this.throwUntil = 0;
+
+    this.currentFrame = 0;
+    this.frameTimer = 0;
+    this.frameInterval = 120;
   }
+
+  setThrow() {
+    this.throwUntil = Date.now() + 250; // 250ms throw window
+  }
+
+  isThrowing() {
+    return Date.now() < this.throwUntil;
+  }
+
+  updateAnimation(deltaTime) {
+    if (Math.abs(this.velX) > 0 || this.movingHorizontally) {
+      this.frameTimer += deltaTime;
+      if (this.frameTimer > this.frameInterval) {
+        this.frameTimer = 0;
+        this.currentFrame = (this.currentFrame + 1) % this.walkingSprites.length;
+      }
+    } else {
+      this.currentFrame = 0;
+      this.frameTimer = 0;
+    }
+  }
+
+  updateJumpState() {
+    // If player is NOT on the ground or platform -> jumping
+    const grounded = this.y >= CONFIG.player.groundY ||
+                     isOnPlatform(this.x, this.y, this.width, this.height, CONFIG.platforms) !== null;
+
+    this.isJumping = !grounded;
+  }
+
   draw(ctx) {
-    ctx.save(); ctx.translate(this.x, this.y);
+    ctx.save();
+    ctx.translate(this.x, this.y);
+
     const invuln = Date.now() < this.invulnUntil;
     const flicker = (!this.isFlickering || Math.floor(Date.now() / 100) % 2 === 0) &&
       (!invuln || Math.floor(Date.now() / 100) % 2 === 0);
-    if (this.facingLeft) { ctx.scale(-1, 1); if (flicker) ctx.drawImage(IMAGES.player, -this.width, 0, this.width, this.height); }
-    else { if (flicker) ctx.drawImage(IMAGES.player, 0, 0, this.width, this.height); }
+
+    let sprite;
+    if (this.isThrowing()) {
+      sprite = this.throwSprite;     // Throw takes priority
+    } else if (this.isJumping) {
+      sprite = this.jumpSprite;      // Jump if in air
+    } else if (Math.abs(this.velX) > 0 || this.movingHorizontally) {
+      sprite = this.walkingSprites[this.currentFrame]; // Walk anim
+    } else {
+      sprite = this.idleSprite;      // Idle
+    }
+
+    if (flicker) {
+      if (this.facingLeft) {
+        ctx.scale(-1, 1);
+        ctx.drawImage(sprite, -this.width, 0, this.width, this.height);
+      } else {
+        ctx.drawImage(sprite, 0, 0, this.width, this.height);
+      }
+    }
     ctx.restore();
   }
-  applyGravity() { this.velY += CONFIG.player.gravity; this.y += this.velY; }
-  setFacingFromInput(keys) { if (keys['arrowleft'] || keys['a']) this.facingLeft = true; if (keys['arrowright'] || keys['d']) this.facingLeft = false; }
+
+  applyGravity() {
+    this.velY += CONFIG.player.gravity;
+    this.y += this.velY;
+  }
+
+  setFacingFromInput(keys) {
+    if (keys['arrowleft'] || keys['a']) this.facingLeft = true;
+    if (keys['arrowright'] || keys['d']) this.facingLeft = false;
+  }
+
   updateFlicker(touch) {
     const { holdMs, durationMs, slowFactor } = CONFIG.player.flicker;
     if (touch) {
       if (!this.touchStartTime) this.touchStartTime = Date.now();
-      if (!this.isFlickering && Date.now() - this.touchStartTime >= holdMs) { this.isFlickering = true; this.flickerStartTime = Date.now(); this.speed = this.baseSpeed * slowFactor; }
+      if (!this.isFlickering && Date.now() - this.touchStartTime >= holdMs) {
+        this.isFlickering = true;
+        this.flickerStartTime = Date.now();
+        this.speed = this.baseSpeed * slowFactor;
+      }
     } else this.touchStartTime = null;
-    if (this.isFlickering && Date.now() - this.flickerStartTime >= durationMs) { this.isFlickering = false; this.speed = this.baseSpeed; }
+
+    if (this.isFlickering && Date.now() - this.flickerStartTime >= durationMs) {
+      this.isFlickering = false;
+      this.speed = this.baseSpeed;
+    }
   }
+
   takeTouchDamage(now) {
     if (now < this.invulnUntil) return false;
-    if (now - this.lastHurtAt >= CONFIG.combat.touchDamageCooldown) { this.hp -= CONFIG.combat.touchDamage; this.lastHurtAt = now; return true; }
+    if (now - this.lastHurtAt >= CONFIG.combat.touchDamageCooldown) {
+      this.hp -= CONFIG.combat.touchDamage;
+      this.lastHurtAt = now;
+      return true;
+    }
     return false;
   }
-  setInvulnerableForRespawn() { this.invulnUntil = Date.now() + CONFIG.player.respawnInvulnMs; }
-  getLives() { return this.lives; } getHP() { return this.hp; }
+
+  setInvulnerableForRespawn() {
+    this.invulnUntil = Date.now() + CONFIG.player.respawnInvulnMs;
+  }
+
+  getLives() { return this.lives; }
+  getHP() { return this.hp; }
 }
+
 
 // ======= Game Controller =======
 class Game {
@@ -203,6 +319,9 @@ class Game {
     const dir = this.player.facingLeft ? -1 : 1; const px = this.player.facingLeft ? this.player.x : this.player.x + this.player.width;
     const py = this.player.y + this.player.height / 2 - spec.height / 2;
     this.bullets.push(new Bullet(px, py, dir, type));
+
+    // === Player Throw Event ===
+    this.player.setThrow();
   }
 
   // ==== NEW WAVE SYSTEM ====
@@ -309,12 +428,26 @@ class Game {
 
   update() {
     if (this.gameOver) return;
-    this._movePlayerHorizontal(); this._applyPlayerPhysics();
-    this._updateEnemiesAI(); this._updateBullets();
-    this._bulletEnemyCollisions(); this._playerEnemyContactAndFlicker();
+
+    this._movePlayerHorizontal();
+    this._applyPlayerPhysics();
+    this.player.updateJumpState();
+
+    // update player animation
+    this.player.movingHorizontally = this.keys['arrowleft'] || this.keys['a'] ||
+                                    this.keys['arrowright'] || this.keys['d'];
+    this.player.updateAnimation(16); // ~16ms per frame (60fps)
+    this.player.didThrow = false;
+
+    this._updateEnemiesAI();
+    this._updateBullets();
+    this._bulletEnemyCollisions();
+    this._playerEnemyContactAndFlicker();
     this._maybeSpawnWave();
+
     this.enemies = this.enemies.filter(e => !e.dead);
   }
+
 
   frame() {
     this.update(); this._drawAll();
