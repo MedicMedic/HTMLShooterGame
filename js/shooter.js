@@ -36,9 +36,25 @@ const CONFIG = {
   },
   bulletTypes: [1, 2, 3, 4, 5, 6, 7, 8],
   enemies: {
-    1: { width: 50, height: 50, baseSpeed: 1.2, baseHealth: 10, src: 'assets/enemies/PHenemy.png' },
-    2: { width: 50, height: 50, baseSpeed: 0.9, baseHealth: 20, src: 'assets/enemies/PHenemyB.png' },
-    3: { width: 50, height: 50, baseSpeed: 1.0, baseHealth: 15, src: 'assets/enemies/PHenemyC.png' }
+    1: {
+      width: 50, height: 50, baseSpeed: 1.2, baseHealth: 10,
+      frames: [ 'assets/enemies/PHenemy.png' ],
+      animMode: "static"   // no animation
+    },
+    2: {    
+      width: 50, height: 50, baseSpeed: 1.0, baseHealth: 15,
+      frames: [
+          'assets/enemies/enemy2_1.png',
+          'assets/enemies/enemy2_2.png',
+        ],
+      animMode: "fade",    // smooth crossfade animation
+      animationInterval: 500
+    },
+    3: {
+      width: 50, height: 50, baseSpeed: 1.0, baseHealth: 15,
+      frames: [ 'assets/enemies/PHenemyC.png' ],
+      animMode: "static"
+    }
   },
   sprites: {
     player: 'assets/player/player_idle.png',
@@ -64,7 +80,7 @@ const CONFIG = {
   ]
 };
 
-// ======= DAMAGE MATRIX ======= temp values
+// ======= DAMAGE MATRIX ======= 
 const DAMAGE_MATRIX = {
   1: { 1: 5, 2: 1, 3: 10 },
   2: { 1: 1, 2: 10, 3: 10 },
@@ -81,23 +97,42 @@ const IMAGES = { player: new Image(), platform: new Image(), bullets: {}, enemie
 
 function preloadImages(onAllLoaded) {
   const toLoad = [];
+
+  // player + platform
   IMAGES.player.src = CONFIG.sprites.player;
   IMAGES.platform.src = CONFIG.sprites.platform;
   toLoad.push(IMAGES.player, IMAGES.platform);
 
+  // bullets (unchanged)
   for (const [type, info] of Object.entries(CONFIG.bullets)) {
-    const img = new Image(); img.src = info.src;
-    IMAGES.bullets[type] = img; toLoad.push(img);
+    const img = new Image();
+    img.src = info.src;
+    IMAGES.bullets[type] = img;
+    toLoad.push(img);
   }
+
+  // enemies: load EACH frame into an Image[], not a single Image
   for (const [type, info] of Object.entries(CONFIG.enemies)) {
-    const img = new Image(); img.src = info.src;
-    IMAGES.enemies[type] = img; toLoad.push(img);
+    const frames = [];
+    for (const src of info.frames) {
+      const img = new Image();
+      img.src = src;
+      frames.push(img);
+      toLoad.push(img);
+    }
+    IMAGES.enemies[type] = frames; // array of HTMLImageElement
   }
+
+  // gate start until everything has either loaded or errored
   let loaded = 0;
   toLoad.forEach(img => {
-    img.onload = img.onerror = () => { loaded++; if (loaded === toLoad.length) onAllLoaded(); };
+    img.onload = img.onerror = () => {
+      loaded++;
+      if (loaded === toLoad.length) onAllLoaded();
+    };
   });
 }
+
 
 // ======= Helpers =======
 function aabbOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
@@ -137,12 +172,101 @@ class Bullet {
 
 class Enemy extends Body {
   constructor(x, y, type, wave) {
-    const spec = CONFIG.enemies[type]; super(x, y, spec.width, spec.height);
-    this.type = type; this.speed = spec.baseSpeed + wave * 0.2; this.health = spec.baseHealth; this.dead = false;
+    const spec = CONFIG.enemies[type];
+    super(x, y, spec.width, spec.height);
+
+    this.type = type;
+    this.speed = spec.baseSpeed + wave * 0.2;
+    this.health = spec.baseHealth;
+    this.dead = false;
+
+    // frames are preloaded as an array of HTMLImageElement
+    this.frames = IMAGES.enemies[this.type] || [];
+    this.animMode = spec.animMode || "static";
+
+    // animation state
+    this.currentFrame = 0;
+    this.nextFrame = this.frames.length > 1 ? 1 : 0;
+    this.frameTimer = 0;
+    this.frameInterval = spec.animationInterval || 300;
+    this.blendProgress = 0;
+
+    // facing direction
+    this.isFacingLeft = false; // default (set true if needed in spawn logic)
   }
-  applyGravity() { this.velY += CONFIG.player.gravity; this.y += this.velY; }
-  groundClamp(groundY) { if (this.y >= groundY) { this.y = groundY; this.velY = 0; } }
-  draw(ctx) { if (!this.dead && this.health > 0) ctx.drawImage(IMAGES.enemies[this.type], this.x, this.y, this.width, this.height); }
+
+  updateAnimation(deltaTime) {
+    if (this.animMode === "static" || this.frames.length <= 1) return;
+
+    this.frameTimer += deltaTime;
+
+    if (this.animMode === "fade") {
+      if (this.frameTimer > this.frameInterval) {
+        this.frameTimer = 0;
+        this.currentFrame = this.nextFrame;
+        this.nextFrame = (this.nextFrame + 1) % this.frames.length;
+        this.blendProgress = 0;
+      } else {
+        this.blendProgress = this.frameTimer / this.frameInterval;
+      }
+    } else if (this.animMode === "step") {
+      if (this.frameTimer > this.frameInterval) {
+        this.frameTimer = 0;
+        this.currentFrame = (this.currentFrame + 1) % this.frames.length;
+      }
+    }
+  }
+
+  applyGravity() {
+    this.velY += CONFIG.player.gravity;
+    this.y += this.velY;
+  }
+
+  groundClamp(groundY) {
+    if (this.y >= groundY) {
+      this.y = groundY;
+      this.velY = 0;
+    }
+  }
+
+  draw(ctx) {
+    if (this.dead || this.health <= 0) return;
+    if (!this.frames.length) return;
+
+    ctx.save();
+
+    if (this.isFacingLeft) {
+      // Flip around vertical axis at enemy’s center
+      ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+      ctx.scale(-1, 1);
+      ctx.translate(-this.width / 2, -this.height / 2);
+    } else {
+      ctx.translate(this.x, this.y);
+    }
+
+    if (this.animMode === "fade" && this.frames.length > 1) {
+      const imgA = this.frames[this.currentFrame];
+      const imgB = this.frames[this.nextFrame];
+
+      if (imgA instanceof HTMLImageElement && imgB instanceof HTMLImageElement) {
+        ctx.globalAlpha = 1 - this.blendProgress;
+        ctx.drawImage(imgA, 0, 0, this.width, this.height);
+
+        ctx.globalAlpha = this.blendProgress;
+        ctx.drawImage(imgB, 0, 0, this.width, this.height);
+
+        ctx.globalAlpha = 1.0;
+      }
+    } else {
+      const img = this.frames[this.currentFrame];
+      if (img instanceof HTMLImageElement) {
+        ctx.drawImage(img, 0, 0, this.width, this.height);
+      }
+    }
+
+    ctx.restore();
+  }
+
 }
 
 class Player extends Body {
@@ -368,14 +492,36 @@ class Game {
   _updateEnemiesAI() {
     for (let e of this.enemies) {
       if (e.dead || e.health <= 0) continue;
-      if (this.player.x < e.x) e.x -= e.speed; else e.x += e.speed;
-      if (this.player.y < e.y && e.velY === 0) e.velY = CONFIG.waves.enemyJumpStrength;
-      e.applyGravity(); e.groundClamp(CONFIG.player.groundY);
+
+      if (this.player.x < e.x) {
+        e.x -= e.speed;
+        e.isFacingLeft = true;
+      } else {
+        e.x += e.speed;
+        e.isFacingLeft = false;
+      }
+
+      if (this.player.y < e.y && e.velY === 0) {
+        e.velY = CONFIG.waves.enemyJumpStrength;
+      }
+
+      e.applyGravity();
+      e.groundClamp(CONFIG.player.groundY);
+
       const platY = isOnPlatform(e.x, e.y, e.width, e.height, this.platforms);
-      if (platY !== null && e.velY >= 0) { e.y = platY; e.velY = 0; }
+      if (platY !== null && e.velY >= 0) {
+        e.y = platY;
+        e.velY = 0;
+      }
+
       e.x = clamp(e.x, 0, canvas.width - e.width);
     }
+
+    for (let e of this.enemies) {
+      e.updateAnimation(16); // ~16ms/frame (60fps)
+    }
   }
+
 
   _updateBullets() { for (const b of this.bullets) b.update(); this.bullets = this.bullets.filter(b => !b.isOffscreen() && !b.dead); }
 
