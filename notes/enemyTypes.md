@@ -1,6 +1,6 @@
 1: Hate - Green
-2: Void - Orange
-3: Thoughtless - Purple
+2: Void - Orange //
+3: Thoughtless - Purple //
 4: Blind - Blue
 5: Ignorance - Red
 6: Lethargy - Yellow

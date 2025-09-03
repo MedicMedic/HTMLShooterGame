@@ -38,22 +38,25 @@ const CONFIG = {
   enemies: {
     1: {
       width: 50, height: 50, baseSpeed: 1.2, baseHealth: 10,
-      frames: [ 'assets/enemies/PHenemy.png' ],
+      frames: ['assets/enemies/PHenemy.png'],
       animMode: "static"   // no animation
     },
-    2: {    
+    2: {
       width: 50, height: 50, baseSpeed: 1.0, baseHealth: 15,
       frames: [
-          'assets/enemies/enemy2_1.png',
-          'assets/enemies/enemy2_2.png',
-        ],
+        'assets/enemies/enemy2_1.png',
+        'assets/enemies/enemy2_2.png',
+      ],
       animMode: "fade",    // smooth crossfade animation
       animationInterval: 500
     },
     3: {
       width: 50, height: 50, baseSpeed: 1.0, baseHealth: 15,
-      frames: [ 'assets/enemies/PHenemyC.png' ],
-      animMode: "static"
+      frames: [
+        'assets/enemies/enemy3_1.png',
+        'assets/enemies/enemy3_2.png',
+      ],
+      animMode: "step",    // step animation
     }
   },
   sprites: {
@@ -333,7 +336,7 @@ class Player extends Body {
   updateJumpState() {
     // If player is NOT on the ground or platform -> jumping
     const grounded = this.y >= CONFIG.player.groundY ||
-                     isOnPlatform(this.x, this.y, this.width, this.height, CONFIG.platforms) !== null;
+      isOnPlatform(this.x, this.y, this.width, this.height, CONFIG.platforms) !== null;
 
     this.isJumping = !grounded;
   }
@@ -493,13 +496,18 @@ class Game {
     for (let e of this.enemies) {
       if (e.dead || e.health <= 0) continue;
 
-      if (this.player.x < e.x) {
+      // Add a dead-zone so enemies don't flicker if the player is nearly above
+      const deadZone = e.width / 4; // tweak this (1/4 of enemy width works well)
+
+      if (this.player.x < e.x - deadZone) {
         e.x -= e.speed;
         e.isFacingLeft = true;
-      } else {
+      } else if (this.player.x > e.x + deadZone) {
         e.x += e.speed;
         e.isFacingLeft = false;
       }
+      // else: player is in the dead-zone above → no horizontal move, keep facing
+
 
       if (this.player.y < e.y && e.velY === 0) {
         e.velY = CONFIG.waves.enemyJumpStrength;
@@ -518,10 +526,9 @@ class Game {
     }
 
     for (let e of this.enemies) {
-      e.updateAnimation(16); // ~16ms/frame (60fps)
+      e.updateAnimation(10); // ~16ms/frame (60fps)
     }
   }
-
 
   _updateBullets() { for (const b of this.bullets) b.update(); this.bullets = this.bullets.filter(b => !b.isOffscreen() && !b.dead); }
 
@@ -581,7 +588,7 @@ class Game {
 
     // update player animation
     this.player.movingHorizontally = this.keys['arrowleft'] || this.keys['a'] ||
-                                    this.keys['arrowright'] || this.keys['d'];
+      this.keys['arrowright'] || this.keys['d'];
     this.player.updateAnimation(16); // ~16ms per frame (60fps)
     this.player.didThrow = false;
 
