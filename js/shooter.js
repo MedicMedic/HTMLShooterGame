@@ -36,28 +36,62 @@ const CONFIG = {
   },
   bulletTypes: [1, 2, 3, 4, 5, 6, 7, 8],
   enemies: {
-    1: {
+    1: { // Hate
       width: 50, height: 50, baseSpeed: 1.2, baseHealth: 10,
-      frames: ['assets/enemies/PHenemy.png'],
-      animMode: "static"   // no animation
+      frames: ['assets/enemies/enemy1_1.png', 'assets/enemies/enemy1_2.png'],
+      jumpFrame: 'assets/enemies/enemy1_jump.png',
+      animMode: "step",   // no animation
+      jumpStrength: -8
     },
-    2: {
+    2: { // Void
       width: 50, height: 50, baseSpeed: 1.0, baseHealth: 15,
       frames: [
         'assets/enemies/enemy2_1.png',
         'assets/enemies/enemy2_2.png',
       ],
       animMode: "fade",    // smooth crossfade animation
-      animationInterval: 500
+      animationInterval: 500,
+      jumpStrength: -8
     },
-    3: {
+    3: { // Thoughtless
       width: 50, height: 50, baseSpeed: 1.0, baseHealth: 15,
       frames: [
         'assets/enemies/enemy3_1.png',
         'assets/enemies/enemy3_2.png',
       ],
       animMode: "step",    // step animation
-    }
+      jumpStrength: -8
+    },
+    4: { // Blind
+      width: 50, height: 50, baseSpeed: 1.5, baseHealth: 20,
+      frames: ['assets/enemies/PHenemy.png'],
+      animMode: "step",   // no animation
+      jumpStrength: -8
+    },
+    5: { // Ignorance
+      width: 50, height: 50, baseSpeed: 1.5, baseHealth: 20,
+      frames: ['assets/enemies/PHenemy.png'],
+      animMode: "step",   // no animation
+      jumpStrength: -8
+    },
+    6: { // Lethargy
+      width: 50, height: 50, baseSpeed: 0.1, baseHealth: 20,
+      frames: ['assets/enemies/PHenemy.png'],
+      animMode: "step",   // no animation
+      jumpStrength: 0
+    },
+    7: { // Catholic Devil
+      width: 50, height: 50, baseSpeed: 5, baseHealth: 20,
+      frames: ['assets/enemies/PHenemy.png'],
+      animMode: "step",   // no animation
+      jumpStrength: -20
+    },
+    8: { // Impostor Syndrome
+      width: 100, height: 100, baseSpeed: 0.5, baseHealth: 100,
+      frames: ['assets/enemies/PHenemy.png'],
+      animMode: "step",   // no animation
+      jumpStrength: 0
+    },
   },
   sprites: {
     player: 'assets/player/player_idle.png',
@@ -74,7 +108,6 @@ const CONFIG = {
   waves: {
     startEnemies: 3,
     coolDownMs: 2000,
-    enemyJumpStrength: -8
   },
   platforms: [
     { x: 0, y: 500, width: 200, height: 30 },
@@ -85,14 +118,14 @@ const CONFIG = {
 
 // ======= DAMAGE MATRIX ======= 
 const DAMAGE_MATRIX = {
-  1: { 1: 5, 2: 1, 3: 10 },
-  2: { 1: 1, 2: 10, 3: 10 },
-  3: { 1: 10, 2: 10, 3: 10 },
-  4: { 1: 10, 2: 10, 3: 10 },
-  5: { 1: 10, 2: 10, 3: 10 },
-  6: { 1: 10, 2: 10, 3: 10 },
-  7: { 1: 10, 2: 10, 3: 10 },
-  8: { 1: 10, 2: 10, 3: 10 }
+  1: { 1: 5, 2: 1, 3: 10, 4: 10, 5: 10, 6: 10, 7: 10, 8: 10 },
+  2: { 1: 1, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10, 7: 10, 8: 10 },
+  3: { 1: 10, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10, 7: 10, 8: 10 },
+  4: { 1: 10, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10, 7: 10, 8: 10 },
+  5: { 1: 10, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10, 7: 10, 8: 10 },
+  6: { 1: 10, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10, 7: 10, 8: 10 },
+  7: { 1: 10, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10, 7: 10, 8: 10 },
+  8: { 1: 10, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10, 7: 10, 8: 10 },
 };
 
 // ======= Assets =======
@@ -124,6 +157,14 @@ function preloadImages(onAllLoaded) {
       toLoad.push(img);
     }
     IMAGES.enemies[type] = frames; // array of HTMLImageElement
+
+    // Load jump frame if provided
+    if (info.jumpFrame) {
+      const img = new Image();
+      img.src = info.jumpFrame;
+      IMAGES.enemies[type].jumpFrame = img; // attach as property
+      toLoad.push(img);
+    }
   }
 
   // gate start until everything has either loaded or errored
@@ -134,6 +175,8 @@ function preloadImages(onAllLoaded) {
       if (loaded === toLoad.length) onAllLoaded();
     };
   });
+
+
 }
 
 
@@ -180,12 +223,17 @@ class Enemy extends Body {
 
     this.type = type;
     this.speed = spec.baseSpeed + wave * 0.2;
+    this.jumpStrength = spec.jumpStrength ?? CONFIG.waves.enemyJumpStrength;
     this.health = spec.baseHealth;
     this.dead = false;
 
     // frames are preloaded as an array of HTMLImageElement
     this.frames = IMAGES.enemies[this.type] || [];
     this.animMode = spec.animMode || "static";
+    this.jumpFrame = IMAGES.enemies[type].jumpFrame || null;
+    if (this.jumpFrame === null) {
+      console.warn(`Enemy type ${type} has no jump frame defined.`);
+    }
 
     // animation state
     this.currentFrame = 0;
@@ -220,6 +268,16 @@ class Enemy extends Body {
     }
   }
 
+  tryJumpAtPlayer(player) {
+
+    if (this.jumpStrength === 0) return;
+
+    // jump if player is higher AND we're grounded
+    if (player.y < this.y && this.velY === 0) {
+      this.velY = this.jumpStrength;
+    }
+  }
+
   applyGravity() {
     this.velY += CONFIG.player.gravity;
     this.y += this.velY;
@@ -246,6 +304,15 @@ class Enemy extends Body {
     } else {
       ctx.translate(this.x, this.y);
     }
+
+    const isJumping = this.velY !== 0; // true if airborne
+
+    if (isJumping && this.jumpFrame) {
+      ctx.drawImage(this.jumpFrame, 0, 0, this.width, this.height);
+      ctx.restore();
+      return;
+    }
+
 
     if (this.animMode === "fade" && this.frames.length > 1) {
       const imgA = this.frames[this.currentFrame];
@@ -300,8 +367,8 @@ class Player extends Body {
       img.src = src;
       this.walkingSprites.push(img);
     });
-    this.jumpSprite = new Image();
-    this.jumpSprite.src = CONFIG.sprites.playerJump;
+    this.jumpFrame = new Image();
+    this.jumpFrame.src = CONFIG.sprites.playerJump;
     this.throwSprite = new Image();
     this.throwSprite.src = CONFIG.sprites.playerThrow;
 
@@ -353,7 +420,7 @@ class Player extends Body {
     if (this.isThrowing()) {
       sprite = this.throwSprite;     // Throw takes priority
     } else if (this.isJumping) {
-      sprite = this.jumpSprite;      // Jump if in air
+      sprite = this.jumpFrame;      // Jump if in air
     } else if (Math.abs(this.velX) > 0 || this.movingHorizontally) {
       sprite = this.walkingSprites[this.currentFrame]; // Walk anim
     } else {
@@ -509,10 +576,10 @@ class Game {
       // else: player is in the dead-zone above → no horizontal move, keep facing
 
 
-      if (this.player.y < e.y && e.velY === 0) {
-        e.velY = CONFIG.waves.enemyJumpStrength;
-      }
+      // === Let enemy decide if it wants to jump ===
+      e.tryJumpAtPlayer(this.player);
 
+      // === Apply gravity and ground clamp ===
       e.applyGravity();
       e.groundClamp(CONFIG.player.groundY);
 
