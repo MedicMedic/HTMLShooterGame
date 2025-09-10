@@ -1,4 +1,4 @@
-1: Hate - Green
+1: Hate - Green //
 2: Void - Orange //
 3: Thoughtless - Purple //
 4: Blind - Blue

@@ -116,7 +116,7 @@ const CONFIG = {
   ]
 };
 
-// ======= DAMAGE MATRIX ======= 
+// ======= DAMAGE MATRIX ======= Y axis - Bullet Type, X axis - Enemy Type
 const DAMAGE_MATRIX = {
   1: { 1: 5, 2: 1, 3: 10, 4: 10, 5: 10, 6: 10, 7: 10, 8: 10 },
   2: { 1: 1, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10, 7: 10, 8: 10 },
@@ -284,8 +284,14 @@ class Enemy extends Body {
   }
 
   groundClamp(groundY) {
-    if (this.y >= groundY) {
-      this.y = groundY;
+    // For enemies taller than 50px, adjust ground position so they don't sink below canvas
+    let effectiveGroundY = groundY;
+    if (this.height > 50) {
+      effectiveGroundY = Math.min(groundY, canvas.height - this.height);
+    }
+
+    if (this.y >= effectiveGroundY) {
+      this.y = effectiveGroundY;
       this.velY = 0;
     }
   }
@@ -520,7 +526,8 @@ class Game {
 
   // ==== NEW WAVE SYSTEM ====
   spawnWave() {
-    this.wave++; this.waveInProgress = true;
+    this.wave++;
+    this.waveInProgress = true;
     const total = CONFIG.waves.startEnemies + this.wave * 2;
     this.enemiesRemaining = total;
 
@@ -530,16 +537,29 @@ class Game {
 
     let spawned = 0;
     const interval = setInterval(() => {
-      if (spawned >= total) { clearInterval(interval); this.waveInProgress = false; return; }
+      if (spawned >= total) {
+        clearInterval(interval);
+        this.waveInProgress = false;
+        return;
+      }
+
       const type = available[Math.floor(Math.random() * available.length)];
-      const spec = CONFIG.enemies[type]; const sideLeft = Math.random() < 0.5;
+      const spec = CONFIG.enemies[type];
+      const sideLeft = Math.random() < 0.5;
       const x = sideLeft ? -spec.width : canvas.width;
-      this.enemies.push(new Enemy(x, CONFIG.player.groundY, type, this.wave));
-      spawned++; this.enemiesRemaining--;
+
+      let y = CONFIG.player.groundY;
+      if (CONFIG.player.groundY + spec.height > canvas.height) {
+        y = canvas.height - spec.height;
+      }
+
+      this.enemies.push(new Enemy(x, y, type, this.wave));
+      spawned++;
+      this.enemiesRemaining--;
     }, Math.max(400, 1500 - this.wave * 100));
+
     this.lastWaveTime = Date.now();
   }
-
   _isPlayerGroundedOrOnPlatform() {
     const { x, y, width, height, velY } = this.player;
     if (y >= CONFIG.player.groundY && velY >= 0) return true;
