@@ -36,13 +36,13 @@ const CONFIG = {
   },
   bulletTypes: [1, 2, 3, 4, 5, 6, 7, 8],
   enemies: {
-    1: { // Hate
+    /*1: { // Hate
       width: 50, height: 50, baseSpeed: 1.2, baseHealth: 10,
       frames: ['assets/enemies/enemy1_1.png', 'assets/enemies/enemy1_2.png'],
       jumpFrame: 'assets/enemies/enemy1_jump.png',
       animMode: "step",   // no animation
       jumpStrength: -8
-    },
+    },*/
     2: { // Void
       width: 50, height: 50, baseSpeed: 1.0, baseHealth: 15,
       frames: [
@@ -69,7 +69,7 @@ const CONFIG = {
       jumpStrength: -8
     },
     5: { // Ignorance
-      width: 50, height: 50, baseSpeed: 1.5, baseHealth: 200,
+      width: 50, height: 50, baseSpeed: 1.5, baseHealth: 20,
       frames: [
         'assets/enemies/enemy5_1.png',
         'assets/enemies/enemy5_2.png',
@@ -83,7 +83,7 @@ const CONFIG = {
       animMode: "step",   // no animation
       jumpStrength: 0
     },
-    7: { // Catholic Devil
+    7: { // Papa Fish
       width: 50, height: 50, baseSpeed: 5, baseHealth: 20,
       frames: ['assets/enemies/PHenemy.png'],
       animMode: "step",   // no animation
