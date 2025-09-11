@@ -69,10 +69,13 @@ const CONFIG = {
       jumpStrength: -8
     },
     5: { // Ignorance
-      width: 50, height: 50, baseSpeed: 1.5, baseHealth: 20,
-      frames: ['assets/enemies/PHenemy.png'],
+      width: 50, height: 50, baseSpeed: 1.5, baseHealth: 200,
+      frames: [
+        'assets/enemies/enemy5_1.png',
+        'assets/enemies/enemy5_2.png',
+      ],
       animMode: "step",   // no animation
-      jumpStrength: -8
+      jumpStrength: -12
     },
     6: { // Lethargy
       width: 50, height: 50, baseSpeed: 0.1, baseHealth: 20,
@@ -84,7 +87,7 @@ const CONFIG = {
       width: 50, height: 50, baseSpeed: 5, baseHealth: 20,
       frames: ['assets/enemies/PHenemy.png'],
       animMode: "step",   // no animation
-      jumpStrength: -20
+      jumpStrength: -15
     },
     8: { // Impostor Syndrome
       width: 100, height: 100, baseSpeed: 0.5, baseHealth: 100,
