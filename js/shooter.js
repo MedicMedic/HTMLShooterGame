@@ -36,13 +36,13 @@ const CONFIG = {
   },
   bulletTypes: [1, 2, 3, 4, 5, 6, 7, 8],
   enemies: {
-    /*1: { // Hate
+    1: { // Hate
       width: 50, height: 50, baseSpeed: 1.2, baseHealth: 10,
       frames: ['assets/enemies/enemy1_1.png', 'assets/enemies/enemy1_2.png'],
       jumpFrame: 'assets/enemies/enemy1_jump.png',
       animMode: "step",   // no animation
       jumpStrength: -8
-    },*/
+    },
     2: { // Void
       width: 50, height: 50, baseSpeed: 1.0, baseHealth: 15,
       frames: [
@@ -59,13 +59,13 @@ const CONFIG = {
         'assets/enemies/enemy3_1.png',
         'assets/enemies/enemy3_2.png',
       ],
-      animMode: "step",    // step animation
+      animMode: "step",    
       jumpStrength: -8
     },
     4: { // Blind
       width: 50, height: 50, baseSpeed: 1.5, baseHealth: 20,
       frames: ['assets/enemies/PHenemy.png'],
-      animMode: "step",   // no animation
+      animMode: "step",   
       jumpStrength: -8
     },
     5: { // Ignorance
@@ -74,25 +74,28 @@ const CONFIG = {
         'assets/enemies/enemy5_1.png',
         'assets/enemies/enemy5_2.png',
       ],
-      animMode: "step",   // no animation
+      animMode: "step",   
       jumpStrength: -12
     },
     6: { // Lethargy
       width: 50, height: 50, baseSpeed: 0.1, baseHealth: 20,
-      frames: ['assets/enemies/PHenemy.png'],
-      animMode: "step",   // no animation
+      frames: [
+        'assets/enemies/enemy6_1.png',
+        'assets/enemies/enemy6_2.png'
+      ],
+      animMode: "step",
       jumpStrength: 0
     },
     7: { // Papa Fish
       width: 50, height: 50, baseSpeed: 5, baseHealth: 20,
       frames: ['assets/enemies/PHenemy.png'],
-      animMode: "step",   // no animation
+      animMode: "step",
       jumpStrength: -15
     },
     8: { // Impostor Syndrome
       width: 100, height: 100, baseSpeed: 0.5, baseHealth: 100,
       frames: ['assets/enemies/PHenemy.png'],
-      animMode: "step",   // no animation
+      animMode: "step",
       jumpStrength: 0
     },
   },
@@ -588,19 +591,25 @@ class Game {
 
       // Add a dead-zone so enemies don't flicker if the player is nearly above
       const deadZone = e.width / 4; // tweak this (1/4 of enemy width works well)
+      let moved = false;
 
       if (this.player.x < e.x - deadZone) {
         e.x -= e.speed;
         e.isFacingLeft = true;
+        moved = true;
       } else if (this.player.x > e.x + deadZone) {
         e.x += e.speed;
         e.isFacingLeft = false;
+        moved = true;
       }
       // else: player is in the dead-zone above → no horizontal move, keep facing
 
 
       // === Let enemy decide if it wants to jump ===
       e.tryJumpAtPlayer(this.player);
+      if (e.tryJumpAtPlayer(this.player)) {
+        moved = true;
+      }
 
       // === Apply gravity and ground clamp ===
       e.applyGravity();
@@ -613,10 +622,13 @@ class Game {
       }
 
       e.x = clamp(e.x, 0, canvas.width - e.width);
-    }
 
-    for (let e of this.enemies) {
-      e.updateAnimation(10); // ~16ms/frame (60fps)
+      for (let e of this.enemies) {
+        // only advance animation frames if moved this tick
+        if (moved) {
+          e.updateAnimation(10);
+        }
+      }
     }
   }
 
