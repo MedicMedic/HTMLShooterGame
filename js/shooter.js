@@ -64,7 +64,11 @@ const CONFIG = {
     },
     4: { // Blind
       width: 50, height: 50, baseSpeed: 1.5, baseHealth: 20,
-      frames: ['assets/enemies/PHenemy.png'],
+      frames: [
+        'assets/enemies/enemy4_1.png',
+        'assets/enemies/enemy4_2.png'
+      ],
+      jumpFrame: 'assets/enemies/enemy4_jump.png',
       animMode: "step",   
       jumpStrength: -8
     },
