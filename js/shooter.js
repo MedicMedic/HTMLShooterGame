@@ -36,9 +36,12 @@ const CONFIG = {
   },
   bulletTypes: [1, 2, 3, 4, 5, 6, 7, 8],
   enemies: {
-    1: { // Hate
+    /*1: { // Hate
       width: 50, height: 50, baseSpeed: 1.2, baseHealth: 10,
-      frames: ['assets/enemies/enemy1_1.png', 'assets/enemies/enemy1_2.png'],
+      frames: [
+        'assets/enemies/enemy1_1.png', 
+        'assets/enemies/enemy1_2.png'
+      ],
       jumpFrame: 'assets/enemies/enemy1_jump.png',
       animMode: "step",   // no animation
       jumpStrength: -8
@@ -89,10 +92,14 @@ const CONFIG = {
       ],
       animMode: "step",
       jumpStrength: 0
-    },
+    },*/
     7: { // Papa Fish
       width: 50, height: 50, baseSpeed: 5, baseHealth: 20,
-      frames: ['assets/enemies/PHenemy.png'],
+      frames: [
+        'assets/enemies/enemy7_1.png',
+        'assets/enemies/enemy7_2.png'
+      ],
+      jumpFrame: 'assets/enemies/enemy7_jump.png',
       animMode: "step",
       jumpStrength: -15
     },
