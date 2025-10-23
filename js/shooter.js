@@ -36,10 +36,10 @@ const CONFIG = {
   },
   bulletTypes: [1, 2, 3, 4, 5, 6, 7, 8],
   enemies: {
-    /*1: { // Hate
+    1: { // Hate
       width: 50, height: 50, baseSpeed: 1.2, baseHealth: 10,
       frames: [
-        'assets/enemies/enemy1_1.png', 
+        'assets/enemies/enemy1_1.png',
         'assets/enemies/enemy1_2.png'
       ],
       jumpFrame: 'assets/enemies/enemy1_jump.png',
@@ -62,7 +62,7 @@ const CONFIG = {
         'assets/enemies/enemy3_1.png',
         'assets/enemies/enemy3_2.png',
       ],
-      animMode: "step",    
+      animMode: "step",
       jumpStrength: -8
     },
     4: { // Blind
@@ -72,7 +72,7 @@ const CONFIG = {
         'assets/enemies/enemy4_2.png'
       ],
       jumpFrame: 'assets/enemies/enemy4_jump.png',
-      animMode: "step",   
+      animMode: "step",
       jumpStrength: -8
     },
     5: { // Ignorance
@@ -81,7 +81,7 @@ const CONFIG = {
         'assets/enemies/enemy5_1.png',
         'assets/enemies/enemy5_2.png',
       ],
-      animMode: "step",   
+      animMode: "step",
       jumpStrength: -12
     },
     6: { // Lethargy
@@ -92,7 +92,7 @@ const CONFIG = {
       ],
       animMode: "step",
       jumpStrength: 0
-    },*/
+    },
     7: { // Papa Fish
       width: 50, height: 50, baseSpeed: 5, baseHealth: 20,
       frames: [
@@ -105,7 +105,10 @@ const CONFIG = {
     },
     8: { // Impostor Syndrome
       width: 100, height: 100, baseSpeed: 0.5, baseHealth: 100,
-      frames: ['assets/enemies/PHenemy.png'],
+      frames: [
+        'assets/enemies/enemy8_1.png',
+        'assets/enemies/enemy8_2.png'
+      ],
       animMode: "step",
       jumpStrength: 0
     },
@@ -120,14 +123,14 @@ const CONFIG = {
     ],
     playerJump: 'assets/player/player_jump.png',
     playerThrow: 'assets/player/player_throw.png',
-    platform: 'assets/environment/PHplatform.png'
+    platform: 'assets/environment/platform.png'
   },
   waves: {
     startEnemies: 3,
     coolDownMs: 2000,
   },
   platforms: [
-    { x: 0, y: 500, width: 200, height: 30 },
+    { x: 0, y: 450, width: 200, height: 30 },
     { x: 200, y: 400, width: 200, height: 30 },
     { x: 600, y: 300, width: 200, height: 30 },
   ]
