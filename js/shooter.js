@@ -130,9 +130,11 @@ const CONFIG = {
     coolDownMs: 2000,
   },
   platforms: [
-    { x: 0, y: 450, width: 200, height: 30 },
-    { x: 200, y: 400, width: 200, height: 30 },
-    { x: 600, y: 300, width: 200, height: 30 },
+    { x: 75, y: 454, width: 300, height: 30 }, // yay
+    { x: 460, y: 421, width: 300, height: 30 }, // yay
+    { x: 465, y: 306, width: 300, height: 30 }, // yay
+    { x: 53, y: 277, width: 300, height: 30 }, // yay
+    { x: 320, y: 162, width: 300, height: 30 }, // yay
   ]
 };
 
