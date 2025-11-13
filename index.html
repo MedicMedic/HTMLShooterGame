@@ -10,7 +10,19 @@
     style="background-image: url('assets/environment/background1.png')"></canvas>
     <textarea id="score">Score: 0</textarea>
     <textarea id="lives">Lives: 3</textarea>
-    <script src="js/shooter.js"></script>
+    <!-- Load order matters: base utilities first, then classes, then game logic -->
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/animations.js"></script>
+    <script src="js/particles.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/entities/Body.js"></script>
+    <script src="js/entities/Bullet.js"></script>
+    <script src="js/entities/Enemy.js"></script>
+    <script src="js/entities/Player.js"></script>
+    <script src="js/Game.js"></script>
+    <script src="js/main.js"></script>
 
 </body>
 </html>
