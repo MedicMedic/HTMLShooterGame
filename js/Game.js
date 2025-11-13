@@ -50,7 +50,7 @@ class Game {
    * Setup input handlers
    */
   _wireInputs() {
-    const prevent = ['arrowleft', 'arrowright', 'arrowup', ' ', 'w', 'a', 's', 'd', 'x', 'enter'];
+    const prevent = ['arrowleft', 'arrowright', 'arrowup', ' ', 'w', 'a', 's', 'd', 'x', 'enter', '1', '2', '3', '4', '5', '6', '7', '8'];
 
     document.addEventListener('keydown', (e) => {
       const k = e.key.toLowerCase();
@@ -70,7 +70,13 @@ class Game {
         this._shoot(this.currentBullet);
       }
 
-      // Cycle bullet type
+      // Direct bullet selection with 1-8 keys
+      const bulletNum = parseInt(k);
+      if (bulletNum >= 1 && bulletNum <= 8 && CONFIG.bulletTypes.includes(bulletNum)) {
+        this.currentBullet = bulletNum;
+      }
+
+      // Cycle bullet type (keep for backwards compatibility)
       if (k === 'c') {
         const idx = CONFIG.bulletTypes.indexOf(this.currentBullet);
         this.currentBullet = CONFIG.bulletTypes[(idx + 1) % CONFIG.bulletTypes.length];
@@ -177,9 +183,15 @@ class Game {
       enemy.updateAnimation(deltaTime);
     }
 
-    // Update bullets
+    // Update bullets and emit trail particles
     for (const bullet of this.bullets) {
       bullet.update(deltaTime);
+
+      // Emit trail particles
+      if (bullet.shouldEmitTrail()) {
+        const center = bullet.getCenter();
+        this.particles.emitTrail(center.x, center.y, bullet.type);
+      }
     }
     this.bullets = this.bullets.filter(b => !b.isOffscreen(this.canvas.width) && !b.dead);
 
@@ -221,9 +233,9 @@ class Game {
             this.ui.updateHUD(this.score, this.player.getLives());
           }
 
-          // Emit hit particles
+          // Emit hit particles with bullet color
           const center = enemy.getCenter();
-          this.particles.emitHit(center.x, center.y, enemy.type);
+          this.particles.emitHit(center.x, center.y, bullet.type);
 
           bullet.dead = true;
           hit = true;
@@ -320,7 +332,7 @@ class Game {
     // Draw UI
     this.ui.drawPlayerHPBar(this.player.getHP(), CONFIG.player.maxHP);
     this.ui.drawWaveIndicator(this.wave);
-    this.ui.drawBulletIndicator(this.currentBullet);
+    this.ui.drawBulletIndicator(this.currentBullet, this.images.bullets[this.currentBullet]);
 
     // Draw game over
     if (this.gameOver) {
