@@ -13,6 +13,10 @@ class Bullet {
     this.speed = spec.speed;  // pixels per second
     this.dead = false;
     this.image = images[type];
+
+    // Trail particle emission
+    this.lastTrailTime = 0;
+    this.trailInterval = CONFIG.particles.trailInterval || 50;
   }
 
   /**
@@ -20,6 +24,28 @@ class Bullet {
    */
   update(deltaTime) {
     this.x += this.dir * this.speed * deltaTime;
+    this.lastTrailTime += deltaTime * 1000;  // convert to milliseconds
+  }
+
+  /**
+   * Check if should emit trail particle
+   */
+  shouldEmitTrail() {
+    if (this.lastTrailTime >= this.trailInterval) {
+      this.lastTrailTime = 0;
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Get center position for trail emission
+   */
+  getCenter() {
+    return {
+      x: this.x + this.width / 2,
+      y: this.y + this.height / 2
+    };
   }
 
   /**

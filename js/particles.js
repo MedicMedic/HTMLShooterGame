@@ -51,7 +51,7 @@ class ParticleSystem {
   }
 
   /**
-   * Emit shooting particles
+   * Emit shooting particles (more subtle)
    */
   emitShoot(x, y, direction) {
     const count = CONFIG.particles.shootCount;
@@ -59,15 +59,49 @@ class ParticleSystem {
 
     for (let i = 0; i < count; i++) {
       const angle = direction === 1 ?
-        random(-Math.PI / 4, Math.PI / 4) :  // Right
-        random(Math.PI * 3 / 4, Math.PI * 5 / 4);  // Left
+        random(-Math.PI / 6, Math.PI / 6) :  // Right (narrower cone)
+        random(Math.PI * 5 / 6, Math.PI * 7 / 6);  // Left (narrower cone)
 
-      const speed = random(100, 300);
+      const speed = random(60, 150);  // reduced speed
       const vx = Math.cos(angle) * speed;
       const vy = Math.sin(angle) * speed;
 
       const color = colors[Math.floor(Math.random() * colors.length)];
-      const size = random(2, 4);
+      const size = random(1, 2);  // smaller particles
+      const lifetime = random(150, 300);  // shorter lifetime
+
+      this.particles.push(new Particle(x, y, vx, vy, color, size, lifetime));
+    }
+  }
+
+  /**
+   * Emit bullet trail particles (subtle)
+   */
+  emitTrail(x, y, bulletType) {
+    const count = CONFIG.particles.trailCount || 2;
+
+    // Bullet type colors (matching bullet visual themes)
+    const bulletColors = {
+      1: ['#ff9999', '#ffaaaa'],  // Light red
+      2: ['#9999ff', '#aaaaff'],  // Light blue
+      3: ['#99ff99', '#aaffaa'],  // Light green
+      4: ['#ffff99', '#ffffaa'],  // Light yellow
+      5: ['#ff99ff', '#ffaaff'],  // Light magenta
+      6: ['#99ffff', '#aaffff'],  // Light cyan
+      7: ['#ffaa99', '#ffbbaa'],  // Light orange
+      8: ['#ffffff', '#eeeeee'],  // White
+    };
+
+    const colors = bulletColors[bulletType] || ['#ffffff', '#eeeeee'];
+
+    for (let i = 0; i < count; i++) {
+      const angle = random(0, Math.PI * 2);
+      const speed = random(10, 30);  // slow drift
+      const vx = Math.cos(angle) * speed;
+      const vy = Math.sin(angle) * speed;
+
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      const size = random(1, 2);  // tiny particles
       const lifetime = random(200, 400);
 
       this.particles.push(new Particle(x, y, vx, vy, color, size, lifetime));
@@ -75,30 +109,33 @@ class ParticleSystem {
   }
 
   /**
-   * Emit hit/impact particles
+   * Emit hit/impact particles with red glow and bullet-colored particles
    */
-  emitHit(x, y, enemyType) {
+  emitHit(x, y, bulletType) {
     const count = CONFIG.particles.hitCount;
 
-    // Different colors based on enemy type for variety
-    const colorSchemes = [
-      ['#ff0000', '#ff6600', '#ff3300'],  // Red/Orange
-      ['#00ff00', '#66ff00', '#33ff00'],  // Green
-      ['#0000ff', '#6600ff', '#3300ff'],  // Blue
-      ['#ff00ff', '#ff66ff', '#ff33ff'],  // Magenta
-      ['#ffff00', '#ffff66', '#ffff33'],  // Yellow
-    ];
+    // Bullet type colors for hit particles
+    const bulletColors = {
+      1: ['#ff0000', '#ff3333', '#ff6666'],  // Red
+      2: ['#0000ff', '#3333ff', '#6666ff'],  // Blue
+      3: ['#00ff00', '#33ff33', '#66ff66'],  // Green
+      4: ['#ffff00', '#ffff33', '#ffff66'],  // Yellow
+      5: ['#ff00ff', '#ff33ff', '#ff66ff'],  // Magenta
+      6: ['#00ffff', '#33ffff', '#66ffff'],  // Cyan
+      7: ['#ff6600', '#ff8833', '#ffaa66'],  // Orange
+      8: ['#ffffff', '#eeeeee', '#dddddd'],  // White
+    };
 
-    const colors = colorSchemes[enemyType % colorSchemes.length];
+    const colors = bulletColors[bulletType] || ['#ff0000', '#ff3333', '#ff6666'];
 
     for (let i = 0; i < count; i++) {
       const angle = random(0, Math.PI * 2);
-      const speed = random(50, 200);
+      const speed = random(40, 150);  // reduced speed
       const vx = Math.cos(angle) * speed;
-      const vy = Math.sin(angle) * speed - 100;  // Slight upward bias
+      const vy = Math.sin(angle) * speed - 80;  // Slight upward bias
 
       const color = colors[Math.floor(Math.random() * colors.length)];
-      const size = random(2, 5);
+      const size = random(1.5, 3);  // smaller particles
       const lifetime = CONFIG.particles.lifetime;
 
       this.particles.push(new Particle(x, y, vx, vy, color, size, lifetime));

@@ -4,7 +4,7 @@ const CONFIG = {
     width: 50,
     height: 50,
     speed: 300,  // pixels per second (was 5 per frame)
-    jumpStrength: -600,  // pixels per second (was -10 per frame)
+    jumpStrength: -900,  // pixels per second (increased for platform jumping)
     gravity: 1800,  // pixels per second squared (was 0.3 per frame)
     groundY: 550,
     flicker: { holdMs: 5000, durationMs: 2000, slowFactor: 0.5 },
@@ -36,7 +36,7 @@ const CONFIG = {
       ],
       jumpFrame: 'assets/enemies/enemy1_jump.png',
       animMode: "step",
-      jumpStrength: -480,  // was -8
+      jumpStrength: -720,  // increased for platform jumping
       animationInterval: 300,
     },
     2: { // Void
@@ -47,7 +47,7 @@ const CONFIG = {
       ],
       animMode: "fade",
       animationInterval: 500,
-      jumpStrength: -480
+      jumpStrength: -720  // increased for platform jumping
     },
     3: { // Thoughtless
       width: 50, height: 50, baseSpeed: 60, baseHealth: 15,
@@ -56,7 +56,7 @@ const CONFIG = {
         'assets/enemies/enemy3_2.png',
       ],
       animMode: "step",
-      jumpStrength: -480,
+      jumpStrength: -720,  // increased for platform jumping
       animationInterval: 300,
     },
     4: { // Blind
@@ -67,7 +67,7 @@ const CONFIG = {
       ],
       jumpFrame: 'assets/enemies/enemy4_jump.png',
       animMode: "step",
-      jumpStrength: -480,
+      jumpStrength: -720,  // increased for platform jumping
       animationInterval: 300,
     },
     5: { // Ignorance
@@ -77,7 +77,7 @@ const CONFIG = {
         'assets/enemies/enemy5_2.png',
       ],
       animMode: "step",
-      jumpStrength: -720,  // was -12
+      jumpStrength: -900,  // increased for platform jumping
       animationInterval: 300,
     },
     6: { // Lethargy
@@ -98,7 +98,7 @@ const CONFIG = {
       ],
       jumpFrame: 'assets/enemies/enemy7_jump.png',
       animMode: "step",
-      jumpStrength: -900,  // was -15
+      jumpStrength: -1200,  // increased for platform jumping
       animationInterval: 200,
     },
     8: { // Impostor Syndrome
@@ -137,22 +137,43 @@ const CONFIG = {
     { x: 320, y: 162, width: 300, height: 30 },
   ],
   particles: {
-    shootCount: 8,
-    hitCount: 15,
+    shootCount: 3,  // reduced from 8 for more subtle effect
+    hitCount: 8,  // reduced from 15 for more subtle effect
     gravity: 300,
-    lifetime: 800,  // milliseconds
+    lifetime: 500,  // reduced from 800 for quicker fade
+    trailCount: 2,  // particles per trail emission
+    trailInterval: 50,  // milliseconds between trail emissions
   }
 };
 
 // ======= DAMAGE MATRIX =======
 // Y axis - Bullet Type, X axis - Enemy Type
+// Each bullet is super effective (15 damage) against its matching enemy number
+// Bullet does moderate damage (5-8) to most enemies
+// Bullet does low damage (2-3) to enemies it's weak against
+// Bullet 8 is special: hits all enemies well except enemy 8
 const DAMAGE_MATRIX = {
-  1: { 1: 5, 2: 1, 3: 10, 4: 10, 5: 10, 6: 10, 7: 10, 8: 10 },
-  2: { 1: 1, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10, 7: 10, 8: 10 },
-  3: { 1: 10, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10, 7: 10, 8: 10 },
-  4: { 1: 10, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10, 7: 10, 8: 10 },
-  5: { 1: 10, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10, 7: 10, 8: 10 },
-  6: { 1: 10, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10, 7: 10, 8: 10 },
-  7: { 1: 10, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10, 7: 10, 8: 10 },
-  8: { 1: 10, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10, 7: 10, 8: 10 },
+  // Bullet 1 - Super effective vs Hate (1), moderate vs others
+  1: { 1: 15, 2: 5, 3: 6, 4: 5, 5: 4, 6: 6, 7: 5, 8: 7 },
+
+  // Bullet 2 - Super effective vs Void (2), weak vs tangible enemies
+  2: { 1: 4, 2: 15, 3: 3, 4: 3, 5: 6, 6: 5, 7: 4, 8: 7 },
+
+  // Bullet 3 - Super effective vs Thoughtless (3), good vs mental enemies
+  3: { 1: 6, 2: 5, 3: 15, 4: 6, 5: 8, 6: 4, 7: 5, 8: 7 },
+
+  // Bullet 4 - Super effective vs Blind (4), good vs perception enemies
+  4: { 1: 5, 2: 6, 3: 5, 4: 15, 5: 6, 6: 5, 7: 6, 8: 7 },
+
+  // Bullet 5 - Super effective vs Ignorance (5), good vs mental blocks
+  5: { 1: 5, 2: 5, 3: 7, 4: 6, 5: 15, 6: 6, 7: 5, 8: 7 },
+
+  // Bullet 6 - Super effective vs Lethargy (6), moderate vs active enemies
+  6: { 1: 6, 2: 5, 3: 5, 4: 5, 5: 5, 6: 15, 7: 4, 8: 7 },
+
+  // Bullet 7 - Super effective vs Papa Fish (7), good vs fast enemies
+  7: { 1: 5, 2: 4, 3: 5, 4: 6, 5: 5, 6: 5, 7: 15, 8: 7 },
+
+  // Bullet 8 - Special: hits all enemies well EXCEPT enemy 8 (Impostor Syndrome)
+  8: { 1: 10, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10, 7: 10, 8: 1 },
 };
