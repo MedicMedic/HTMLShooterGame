@@ -1,10 +1,9 @@
 // ======= UI SYSTEM =======
 
 class UIManager {
-  constructor(ctx, scoreEl, livesEl) {
+  constructor(ctx) {
     this.ctx = ctx;
-    this.scoreEl = scoreEl;
-    this.livesEl = livesEl;
+    this.restartButton = null;
   }
 
   /**
@@ -116,21 +115,30 @@ class UIManager {
   }
 
   /**
-   * Update external HUD elements (score, lives)
+   * Draw lives indicator at top of screen
    */
-  updateHUD(score, lives) {
-    if (this.scoreEl) {
-      this.scoreEl.textContent = `Score: ${score}`;
-    }
-    if (this.livesEl) {
-      this.livesEl.textContent = `Lives: ${Math.max(0, lives)}`;
-    }
+  drawLivesIndicator(lives, x = 20, y = 60) {
+    this.ctx.fillStyle = '#ffffff';
+    this.ctx.font = 'bold 18px Arial';
+    this.ctx.textAlign = 'left';
+    this.ctx.fillText(`Lives: ${Math.max(0, lives)}`, x, y);
   }
 
   /**
-   * Draw game over screen
+   * Draw score indicator at top of screen
    */
-  drawGameOver() {
+  drawScoreIndicator(score, x = 650, y = 60) {
+    this.ctx.fillStyle = '#ffffff';
+    this.ctx.font = 'bold 18px Arial';
+    this.ctx.textAlign = 'right';
+    this.ctx.fillText(`Score: ${score}`, x, y);
+    this.ctx.textAlign = 'left';
+  }
+
+  /**
+   * Draw game over screen with restart button
+   */
+  drawGameOver(score) {
     this.ctx.save();
 
     // Semi-transparent overlay
@@ -144,10 +152,63 @@ class UIManager {
     this.ctx.fillText(
       'GAME OVER',
       this.ctx.canvas.width / 2,
-      this.ctx.canvas.height / 2
+      this.ctx.canvas.height / 2 - 50
+    );
+
+    // Final Score
+    this.ctx.fillStyle = '#ffffff';
+    this.ctx.font = 'bold 24px Arial';
+    this.ctx.fillText(
+      `Final Score: ${score}`,
+      this.ctx.canvas.width / 2,
+      this.ctx.canvas.height / 2 + 10
+    );
+
+    // Restart button
+    const buttonWidth = 200;
+    const buttonHeight = 50;
+    const buttonX = this.ctx.canvas.width / 2 - buttonWidth / 2;
+    const buttonY = this.ctx.canvas.height / 2 + 50;
+
+    // Store button bounds for click detection
+    this.restartButton = {
+      x: buttonX,
+      y: buttonY,
+      width: buttonWidth,
+      height: buttonHeight
+    };
+
+    // Draw button
+    this.ctx.fillStyle = '#4CAF50';
+    this.ctx.fillRect(buttonX, buttonY, buttonWidth, buttonHeight);
+
+    // Button border
+    this.ctx.strokeStyle = '#ffffff';
+    this.ctx.lineWidth = 3;
+    this.ctx.strokeRect(buttonX, buttonY, buttonWidth, buttonHeight);
+
+    // Button text
+    this.ctx.fillStyle = '#ffffff';
+    this.ctx.font = 'bold 24px Arial';
+    this.ctx.fillText(
+      'RESTART',
+      this.ctx.canvas.width / 2,
+      buttonY + buttonHeight / 2 + 8
     );
 
     this.ctx.restore();
+  }
+
+  /**
+   * Check if a point is inside the restart button
+   */
+  isRestartButtonClicked(x, y) {
+    if (!this.restartButton) return false;
+
+    return x >= this.restartButton.x &&
+           x <= this.restartButton.x + this.restartButton.width &&
+           y >= this.restartButton.y &&
+           y <= this.restartButton.y + this.restartButton.height;
   }
 
   /**

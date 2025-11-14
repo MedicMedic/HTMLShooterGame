@@ -18,11 +18,7 @@ class Game {
       this.canvas.height
     );
     this.particles = new ParticleSystem();
-    this.ui = new UIManager(
-      ctx,
-      document.getElementById('score'),
-      document.getElementById('lives')
-    );
+    this.ui = new UIManager(ctx);
 
     // Entities
     this.player = new Player(375, CONFIG.player.groundY);
@@ -43,7 +39,6 @@ class Game {
     this.lastFrameTime = performance.now();
 
     this._wireInputs();
-    this.ui.updateHUD(this.score, this.player.getLives());
   }
 
   /**
@@ -89,6 +84,19 @@ class Game {
 
       if (k === ' ' || k === 'arrowup' || k === 'w') {
         this.canJump = true;
+      }
+    });
+
+    // Click handler for restart button
+    this.canvas.addEventListener('click', (e) => {
+      if (!this.gameOver) return;
+
+      const rect = this.canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      if (this.ui.isRestartButtonClicked(x, y)) {
+        this.restart();
       }
     });
   }
@@ -230,7 +238,6 @@ class Game {
 
           if (died) {
             this.score += 10;
-            this.ui.updateHUD(this.score, this.player.getLives());
           }
 
           // Emit hit particles with bullet color
@@ -275,8 +282,6 @@ class Game {
           } else {
             this.gameOver = true;
           }
-
-          this.ui.updateHUD(this.score, this.player.getLives());
         }
       }
     }
@@ -331,12 +336,14 @@ class Game {
 
     // Draw UI
     this.ui.drawPlayerHPBar(this.player.getHP(), CONFIG.player.maxHP);
+    this.ui.drawLivesIndicator(this.player.getLives());
+    this.ui.drawScoreIndicator(this.score);
     this.ui.drawWaveIndicator(this.wave);
     this.ui.drawBulletIndicator(this.currentBullet, this.images.bullets[this.currentBullet]);
 
     // Draw game over
     if (this.gameOver) {
-      this.ui.drawGameOver();
+      this.ui.drawGameOver(this.score);
     }
   }
 
@@ -355,12 +362,37 @@ class Game {
     this.update(cappedDeltaTime);
     this.draw();
 
-    // Continue loop if not game over
-    if (!this.gameOver) {
-      requestAnimationFrame((time) => this.frame(time));
-    } else {
-      this.ui.updateHUD(this.score, this.player.getLives());
-    }
+    // Continue loop
+    requestAnimationFrame((time) => this.frame(time));
+  }
+
+  /**
+   * Restart the game
+   */
+  restart() {
+    // Reset player
+    this.player = new Player(375, CONFIG.player.groundY);
+    this.player.initSprites(this.images);
+
+    // Reset game state
+    this.bullets = [];
+    this.enemies = [];
+    this.score = 0;
+    this.wave = 0;
+    this.enemiesRemaining = 0;
+    this.waveInProgress = false;
+    this.gameOver = false;
+    this.lastWaveTime = Date.now();
+    this.currentBullet = 1;
+
+    // Reset particles
+    this.particles = new ParticleSystem();
+
+    // Reset UI
+    this.ui.restartButton = null;
+
+    // Start new game
+    this.spawnWave();
   }
 
   /**
