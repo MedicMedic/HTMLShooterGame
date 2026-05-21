@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shooter Game</title>
     <link rel="stylesheet" href="shooter.css">
 </head>
 <body>
-    <canvas id="gameCanvas" width="800" height="600"
-    style="background-image: url('assets/environment/background1.png')"></canvas>
-    <!-- Load order matters: base utilities first, then classes, then game logic -->
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <!-- Load order: base utilities first, then classes, then game logic -->
     <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/animations.js"></script>
@@ -18,6 +18,7 @@
     <script src="js/entities/Bullet.js"></script>
     <script src="js/entities/Enemy.js"></script>
     <script src="js/entities/Player.js"></script>
+    <script src="js/entities/Pickup.js"></script>
     <script src="js/Game.js"></script>
     <script src="js/main.js"></script>
 </body>

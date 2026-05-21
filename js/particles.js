@@ -1,5 +1,42 @@
 // ======= PARTICLE SYSTEM =======
 
+// ===== Floating Damage Numbers =====
+class DamageNumber {
+  constructor(x, y, amount, color) {
+    this.x = x + (Math.random() - 0.5) * 20;
+    this.y = y;
+    this.amount = amount;
+    this.vy = -120;  // pixels per second upward
+    this.life = 1.0; // 0–1
+    this.color = color ?? (
+      typeof amount === 'number'
+        ? (amount >= 20 ? '#FFD700' : amount >= 10 ? '#FF6B35' : '#AADDFF')
+        : '#00FF88'   // green for heal text
+    );
+  }
+
+  update(deltaTime) {
+    this.y   += this.vy * deltaTime;
+    this.vy  += 60 * deltaTime;   // slow the float
+    this.life -= 1.5 * deltaTime;
+  }
+
+  draw(ctx) {
+    if (this.life <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, this.life);
+    ctx.font = `bold ${12 + Math.floor(this.life * 4)}px Arial`;
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'black';
+    ctx.strokeText(this.amount, this.x, this.y);
+    ctx.fillStyle = this.color;
+    ctx.fillText(this.amount, this.x, this.y);
+    ctx.restore();
+  }
+
+  isDead() { return this.life <= 0; }
+}
+
 class Particle {
   constructor(x, y, vx, vy, color, size, lifetime) {
     this.x = x;

@@ -29,87 +29,55 @@ const CONFIG = {
   bulletTypes: [1, 2, 3, 4, 5, 6, 7, 8],
   enemies: {
     1: { // Hate
-      width: 50, height: 50, baseSpeed: 72, baseHealth: 10,  // was 1.2
-      frames: [
-        'assets/enemies/enemy1_1.png',
-        'assets/enemies/enemy1_2.png'
-      ],
+      width: 50, height: 50, baseSpeed: 72, baseHealth: 10,
+      frames: ['assets/enemies/enemy1_1.png', 'assets/enemies/enemy1_2.png'],
       jumpFrame: 'assets/enemies/enemy1_jump.png',
-      animMode: "step",
-      jumpStrength: -720,  // increased for platform jumping
-      animationInterval: 300,
+      animMode: 'step', jumpStrength: -720, animationInterval: 300,
+      dropsBullet: 1,
     },
     2: { // Void
-      width: 50, height: 50, baseSpeed: 60, baseHealth: 15,  // was 1.0
-      frames: [
-        'assets/enemies/enemy2_1.png',
-        'assets/enemies/enemy2_2.png',
-      ],
-      animMode: "fade",
-      animationInterval: 500,
-      jumpStrength: -720  // increased for platform jumping
+      width: 50, height: 50, baseSpeed: 60, baseHealth: 15,
+      frames: ['assets/enemies/enemy2_1.png', 'assets/enemies/enemy2_2.png'],
+      animMode: 'fade', animationInterval: 500, jumpStrength: -720,
+      dropsBullet: 2,
     },
     3: { // Thoughtless
       width: 50, height: 50, baseSpeed: 60, baseHealth: 15,
-      frames: [
-        'assets/enemies/enemy3_1.png',
-        'assets/enemies/enemy3_2.png',
-      ],
-      animMode: "step",
-      jumpStrength: -720,  // increased for platform jumping
-      animationInterval: 300,
+      frames: ['assets/enemies/enemy3_1.png', 'assets/enemies/enemy3_2.png'],
+      animMode: 'step', jumpStrength: -720, animationInterval: 300,
+      dropsBullet: 3,
     },
     4: { // Blind
-      width: 50, height: 50, baseSpeed: 90, baseHealth: 20,  // was 1.5
-      frames: [
-        'assets/enemies/enemy4_1.png',
-        'assets/enemies/enemy4_2.png'
-      ],
+      width: 50, height: 50, baseSpeed: 90, baseHealth: 20,
+      frames: ['assets/enemies/enemy4_1.png', 'assets/enemies/enemy4_2.png'],
       jumpFrame: 'assets/enemies/enemy4_jump.png',
-      animMode: "step",
-      jumpStrength: -720,  // increased for platform jumping
-      animationInterval: 300,
+      animMode: 'step', jumpStrength: -720, animationInterval: 300,
+      dropsBullet: 4,
     },
     5: { // Ignorance
       width: 50, height: 50, baseSpeed: 90, baseHealth: 20,
-      frames: [
-        'assets/enemies/enemy5_1.png',
-        'assets/enemies/enemy5_2.png',
-      ],
-      animMode: "step",
-      jumpStrength: -900,  // increased for platform jumping
-      animationInterval: 300,
+      frames: ['assets/enemies/enemy5_1.png', 'assets/enemies/enemy5_2.png'],
+      animMode: 'step', jumpStrength: -900, animationInterval: 300,
+      dropsBullet: 5,
     },
     6: { // Lethargy
-      width: 50, height: 50, baseSpeed: 6, baseHealth: 20,  // was 0.1
-      frames: [
-        'assets/enemies/enemy6_1.png',
-        'assets/enemies/enemy6_2.png'
-      ],
-      animMode: "step",
-      jumpStrength: 0,
-      animationInterval: 300,
+      width: 50, height: 50, baseSpeed: 6, baseHealth: 20,
+      frames: ['assets/enemies/enemy6_1.png', 'assets/enemies/enemy6_2.png'],
+      animMode: 'step', jumpStrength: 0, animationInterval: 300,
+      dropsBullet: 6,
     },
     7: { // Papa Fish
-      width: 50, height: 50, baseSpeed: 300, baseHealth: 20,  // was 5
-      frames: [
-        'assets/enemies/enemy7_1.png',
-        'assets/enemies/enemy7_2.png'
-      ],
+      width: 50, height: 50, baseSpeed: 300, baseHealth: 20,
+      frames: ['assets/enemies/enemy7_1.png', 'assets/enemies/enemy7_2.png'],
       jumpFrame: 'assets/enemies/enemy7_jump.png',
-      animMode: "step",
-      jumpStrength: -1200,  // increased for platform jumping
-      animationInterval: 200,
+      animMode: 'step', jumpStrength: -1200, animationInterval: 200,
+      dropsBullet: 7,
     },
     8: { // Impostor Syndrome
-      width: 100, height: 100, baseSpeed: 30, baseHealth: 100,  // was 0.5
-      frames: [
-        'assets/enemies/enemy8_1.png',
-        'assets/enemies/enemy8_2.png'
-      ],
-      animMode: "step",
-      jumpStrength: 0,
-      animationInterval: 400,
+      width: 100, height: 100, baseSpeed: 30, baseHealth: 100,
+      frames: ['assets/enemies/enemy8_1.png', 'assets/enemies/enemy8_2.png'],
+      animMode: 'step', jumpStrength: 0, animationInterval: 400,
+      dropsBullet: 8,
     },
   },
   sprites: {
@@ -137,13 +105,28 @@ const CONFIG = {
     { x: 320, y: 162, width: 300, height: 30 },
   ],
   particles: {
-    shootCount: 3,  // reduced from 8 for more subtle effect
-    hitCount: 8,  // reduced from 15 for more subtle effect
+    shootCount: 3,
+    hitCount: 8,
     gravity: 300,
-    lifetime: 500,  // reduced from 800 for quicker fade
-    trailCount: 2,  // particles per trail emission
-    trailInterval: 50,  // milliseconds between trail emissions
-  }
+    lifetime: 500,
+    trailCount: 2,
+    trailInterval: 50,
+  },
+  // ---- ASSET SLOTS ----
+  // Set any null to a file path string to enable it.
+  assets: {
+    healthPickup:   null, // 'assets/items/health.png'    — replaces procedural green cross
+    menuBackground: null, // 'assets/ui/menu_bg.png'      — fullscreen art behind menu
+    lifeIcon:       null, // 'assets/ui/life.png'         — replaces coloured circle
+    bulletSlotBg:   null, // 'assets/ui/bullet_slot.png'  — frame behind each bullet slot
+    // One entry per wave (wraps if waves exceed array length):
+    backgrounds: ['assets/environment/background1.png'],
+  },
+  // ---- LIMITS ----
+  limits: {
+    maxBulletsOnScreen: 15,  // prevents bullet-spam slowdown
+    maxDamageNumbers:   20,  // keeps floating text manageable
+  },
 };
 
 // ======= DAMAGE MATRIX =======

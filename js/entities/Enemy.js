@@ -24,6 +24,7 @@ class Enemy extends Body {
     // Movement state
     this.isFacingLeft = false;
     this.isMoving = false;
+    this.jumpCooldown = 0;  // seconds until next jump allowed
   }
 
   /**
@@ -47,9 +48,11 @@ class Enemy extends Body {
       this.isMoving = true;
     }
 
-    // Try to jump at player
-    if (this.jumpStrength !== 0 && player.y < this.y && this.velY === 0) {
+    // Try to jump at player (with cooldown to prevent spam)
+    if (this.jumpCooldown > 0) this.jumpCooldown -= deltaTime;
+    if (this.jumpStrength !== 0 && player.y < this.y && this.velY === 0 && this.jumpCooldown <= 0) {
       this.velY = this.jumpStrength;
+      this.jumpCooldown = 2;  // 2-second gap between jumps
       this.isMoving = true;
     }
   }
