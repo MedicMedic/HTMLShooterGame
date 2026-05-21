@@ -52,7 +52,7 @@ function playMusic(key) {
 const IMAGES = {
   player: new Image(),
   platform: new Image(),
-  healthPickup: null,  // loaded below if CONFIG.assets.healthPickup is set
+  healthPickup: null,
   bullets: {},
   enemies: {},
 };
@@ -104,14 +104,14 @@ function preloadImages(onAllLoaded) {
   });
 }
 
-// ===== Mobile controls wiring =====
+// ===== Mobile controls =====
 function _wireMobileControls(game) {
-  // Map button id -> key string dispatched as KeyboardEvent
-  const bindings = {
-    'mc-btn-up':    'arrowup',
+  // Map button id -> key to dispatch
+  const held = {
     'mc-btn-left':  'arrowleft',
-    'mc-btn-down':  'arrowdown',
     'mc-btn-right': 'arrowright',
+    'mc-btn-up':    'arrowup',
+    'mc-btn-down':  'arrowdown',
     'mc-btn-fire':  'enter',
     'mc-btn-swap':  'c',
   };
@@ -119,28 +119,27 @@ function _wireMobileControls(game) {
   const kd = key => document.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
   const ku = key => document.dispatchEvent(new KeyboardEvent('keyup',   { key, bubbles: true }));
 
-  for (const [id, key] of Object.entries(bindings)) {
+  for (const [id, key] of Object.entries(held)) {
     const el = document.getElementById(id);
     if (!el) continue;
-    // Touch
     el.addEventListener('touchstart', e => { e.preventDefault(); kd(key); }, { passive: false });
     el.addEventListener('touchend',   e => { e.preventDefault(); ku(key); }, { passive: false });
-    // Mouse fallback (desktop testing)
-    el.addEventListener('mousedown', () => kd(key));
-    el.addEventListener('mouseup',   () => ku(key));
+    el.addEventListener('mousedown',  () => kd(key));
+    el.addEventListener('mouseup',    () => ku(key));
   }
 
   // Pause button
   const pauseBtn = document.getElementById('btn-pause');
   if (pauseBtn) {
-    pauseBtn.addEventListener('click', () => game._togglePause());
     pauseBtn.addEventListener('touchstart', e => { e.preventDefault(); game._togglePause(); }, { passive: false });
+    pauseBtn.addEventListener('click', () => game._togglePause());
   }
 
-  // Auto-show mobile controls on first touch (covers devices that don't match the CSS media query)
+  // Show controls on first touch (covers devices wider than the CSS breakpoint)
   window.addEventListener('touchstart', () => {
-    const mc = document.getElementById('mobile-controls');
-    if (mc) mc.style.display = 'flex';
+    document.getElementById('btn-pause').style.display = 'block';
+    document.getElementById('mc-left').style.display   = 'flex';
+    document.getElementById('mc-right').style.display  = 'flex';
   }, { once: true });
 }
 
@@ -148,7 +147,6 @@ function _wireMobileControls(game) {
 function startGame() {
   const game = new Game(ctx, IMAGES);
 
-  // Pause when tab is hidden to prevent a large dt spike on return
   document.addEventListener('visibilitychange', () => {
     game.paused = document.hidden;
     if (!game.paused) game.lastFrameTime = performance.now();

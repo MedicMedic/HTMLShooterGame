@@ -47,6 +47,7 @@ class Game {
 
     this._setState(STATE.MENU);
     this._wireInputs();
+    this._wireCanvasTap();
   }
 
   // ===== State helper =====
@@ -440,6 +441,58 @@ class Game {
 
     this.enemies = this.enemies.filter(e => !e.dead);
   }
+
+  // ===== Canvas tap (menu / game-over navigation on touch) =====
+
+  _wireCanvasTap() {
+    const cv = this.canvas;
+    let tapStart = null;
+
+    const toCanvas = t => {
+      const r = cv.getBoundingClientRect();
+      return {
+        x: (t.clientX - r.left) * cv.width  / r.width,
+        y: (t.clientY - r.top)  * cv.height / r.height,
+      };
+    };
+
+    cv.addEventListener('touchstart', e => {
+      if (this.state === STATE.PLAYING || this.state === STATE.PAUSED) return;
+      e.preventDefault();
+      const p = toCanvas(e.changedTouches[0]);
+      tapStart = { ...p, t: performance.now() };
+    }, { passive: false });
+
+    cv.addEventListener('touchend', e => {
+      if (!tapStart || this.state === STATE.PLAYING || this.state === STATE.PAUSED) return;
+      e.preventDefault();
+      const p  = toCanvas(e.changedTouches[0]);
+      const dx = Math.abs(p.x - tapStart.x);
+      const dy = Math.abs(p.y - tapStart.y);
+      if (dx > 20 || dy > 20 || performance.now() - tapStart.t > 350) { tapStart = null; return; }
+
+      const cy = tapStart.y;
+      const H  = cv.height;
+
+      if (this.state === STATE.MENU) {
+        // Option 0 "Play" at canvas y≈400, Option 1 "Tutorial" at y≈450
+        if (cy > 370 && cy < 430) { this.menuCursor = 0; this._startGame(); }
+        else if (cy > 428 && cy < 490) this._setState(STATE.TUTORIAL);
+      }
+
+      if (this.state === STATE.TUTORIAL) this._setState(STATE.MENU);
+
+      if (this.state === STATE.GAME_OVER) {
+        // "Play Again" at H/2+55 ≈ 355, "Main Menu" at H/2+97 ≈ 397
+        const mid = H / 2;
+        if (cy > mid + 28 && cy < mid + 72)  { this.gameOverCursor = 0; this._startGame(); }
+        else if (cy > mid + 70 && cy < mid + 115) { this._setState(STATE.MENU); playMusic('menu'); }
+      }
+
+      tapStart = null;
+    }, { passive: false });
+  }
+
 
   // ===== Draw =====
 

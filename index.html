@@ -9,32 +9,23 @@
 <body>
     <div id="game-wrapper">
         <canvas id="gameCanvas" width="800" height="600"></canvas>
-        <button id="btn-pause" aria-label="Pause">II</button>
-    </div>
 
-    <!-- Mobile controls (shown on touch devices / small screens) -->
-    <div id="mobile-controls" aria-label="Game controls">
+        <!-- Pause button (top-right overlay, shown during gameplay) -->
+        <button type="button" id="btn-pause" aria-label="Pause">II</button>
 
-        <!-- Left thumb: D-pad -->
-        <div id="mc-dpad">
-            <div class="mc-row">
-                <button class="mc-btn" id="mc-btn-up" aria-label="Jump">&#9650;</button>
-            </div>
-            <div class="mc-row">
-                <button class="mc-btn" id="mc-btn-left"  aria-label="Move left">&#9664;</button>
-                <button class="mc-btn" id="mc-btn-down"  aria-label="Drop">&#9660;</button>
-                <button class="mc-btn" id="mc-btn-right" aria-label="Move right">&#9654;</button>
-            </div>
+        <!-- Left-hand controls (bottom-left overlay) -->
+        <div id="mc-left">
+            <button type="button" class="mc-btn" id="mc-btn-left"  aria-label="Move left">&#9664;</button>
+            <button type="button" class="mc-btn" id="mc-btn-right" aria-label="Move right">&#9654;</button>
+            <button type="button" class="mc-btn mc-swap" id="mc-btn-swap" aria-label="Cycle bullet">SWAP</button>
         </div>
 
-        <!-- Right thumb: action buttons -->
-        <div id="mc-actions">
-            <div class="mc-actions-row">
-                <button class="mc-btn" id="mc-btn-swap" aria-label="Cycle bullet">SWAP</button>
-                <button class="mc-btn" id="mc-btn-fire" aria-label="Shoot / Confirm">FIRE</button>
-            </div>
+        <!-- Right-hand controls (bottom-right overlay) -->
+        <div id="mc-right">
+            <button type="button" class="mc-btn mc-jump" id="mc-btn-up"   aria-label="Jump">JUMP</button>
+            <button type="button" class="mc-btn" id="mc-btn-down" aria-label="Drop">&#9660;</button>
+            <button type="button" class="mc-btn mc-fire" id="mc-btn-fire" aria-label="Shoot">FIRE</button>
         </div>
-
     </div>
 
     <!-- Load order: base utilities first, then classes, then game logic -->
