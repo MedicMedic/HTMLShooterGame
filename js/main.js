@@ -4,7 +4,13 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
 // ===== Game States =====
-const STATE = { MENU: 'menu', TUTORIAL: 'tutorial', PLAYING: 'playing', GAME_OVER: 'game_over' };
+const STATE = {
+  MENU:      'menu',
+  TUTORIAL:  'tutorial',
+  PLAYING:   'playing',
+  PAUSED:    'paused',
+  GAME_OVER: 'game_over',
+};
 
 // ===== Audio =====
 // Replace any null with: new Audio('path/to/file') to enable that sound/track.
@@ -19,6 +25,7 @@ const AUDIO = {
     jump:         null, // new Audio('assets/audio/jump.wav')
     waveStart:    null, // new Audio('assets/audio/wave_start.wav')
     gameOver:     null, // new Audio('assets/audio/game_over.wav')
+    pause:        null, // new Audio('assets/audio/pause.wav')
   },
   music: {
     menu:         null, // new Audio('assets/audio/music_menu.mp3')
@@ -59,7 +66,6 @@ function preloadImages(onAllLoaded) {
   IMAGES.platform.src = CONFIG.sprites.platform;
   toLoad.push(IMAGES.platform);
 
-  // Optional health pickup sprite (CONFIG.assets.healthPickup)
   if (CONFIG.assets?.healthPickup) {
     IMAGES.healthPickup = new Image();
     IMAGES.healthPickup.src = CONFIG.assets.healthPickup;
@@ -98,15 +104,57 @@ function preloadImages(onAllLoaded) {
   });
 }
 
+// ===== Mobile controls wiring =====
+function _wireMobileControls(game) {
+  // Map button id -> key string dispatched as KeyboardEvent
+  const bindings = {
+    'mc-btn-up':    'arrowup',
+    'mc-btn-left':  'arrowleft',
+    'mc-btn-down':  'arrowdown',
+    'mc-btn-right': 'arrowright',
+    'mc-btn-fire':  'enter',
+    'mc-btn-swap':  'c',
+  };
+
+  const kd = key => document.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+  const ku = key => document.dispatchEvent(new KeyboardEvent('keyup',   { key, bubbles: true }));
+
+  for (const [id, key] of Object.entries(bindings)) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    // Touch
+    el.addEventListener('touchstart', e => { e.preventDefault(); kd(key); }, { passive: false });
+    el.addEventListener('touchend',   e => { e.preventDefault(); ku(key); }, { passive: false });
+    // Mouse fallback (desktop testing)
+    el.addEventListener('mousedown', () => kd(key));
+    el.addEventListener('mouseup',   () => ku(key));
+  }
+
+  // Pause button
+  const pauseBtn = document.getElementById('btn-pause');
+  if (pauseBtn) {
+    pauseBtn.addEventListener('click', () => game._togglePause());
+    pauseBtn.addEventListener('touchstart', e => { e.preventDefault(); game._togglePause(); }, { passive: false });
+  }
+
+  // Auto-show mobile controls on first touch (covers devices that don't match the CSS media query)
+  window.addEventListener('touchstart', () => {
+    const mc = document.getElementById('mobile-controls');
+    if (mc) mc.style.display = 'flex';
+  }, { once: true });
+}
+
+// ===== Boot =====
 function startGame() {
   const game = new Game(ctx, IMAGES);
 
-  // Pause on tab hide to prevent a large dt spike when the user returns
+  // Pause when tab is hidden to prevent a large dt spike on return
   document.addEventListener('visibilitychange', () => {
     game.paused = document.hidden;
     if (!game.paused) game.lastFrameTime = performance.now();
   });
 
+  _wireMobileControls(game);
   game.start();
 }
 

@@ -1,12 +1,42 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shooter Game</title>
     <link rel="stylesheet" href="shooter.css">
 </head>
 <body>
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div id="game-wrapper">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        <button id="btn-pause" aria-label="Pause">II</button>
+    </div>
+
+    <!-- Mobile controls (shown on touch devices / small screens) -->
+    <div id="mobile-controls" aria-label="Game controls">
+
+        <!-- Left thumb: D-pad -->
+        <div id="mc-dpad">
+            <div class="mc-row">
+                <button class="mc-btn" id="mc-btn-up" aria-label="Jump">&#9650;</button>
+            </div>
+            <div class="mc-row">
+                <button class="mc-btn" id="mc-btn-left"  aria-label="Move left">&#9664;</button>
+                <button class="mc-btn" id="mc-btn-down"  aria-label="Drop">&#9660;</button>
+                <button class="mc-btn" id="mc-btn-right" aria-label="Move right">&#9654;</button>
+            </div>
+        </div>
+
+        <!-- Right thumb: action buttons -->
+        <div id="mc-actions">
+            <div class="mc-actions-row">
+                <button class="mc-btn" id="mc-btn-swap" aria-label="Cycle bullet">SWAP</button>
+                <button class="mc-btn" id="mc-btn-fire" aria-label="Shoot / Confirm">FIRE</button>
+            </div>
+        </div>
+
+    </div>
+
     <!-- Load order: base utilities first, then classes, then game logic -->
     <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
