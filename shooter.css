@@ -52,6 +52,27 @@ body {
 #btn-pause:active,
 #btn-fullscreen:active { background: rgba(255,215,0,0.35); border-color: #FFD700; }
 
+/* ---- Cluster layout ---- */
+#mc-left {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;   /* rows anchor to left */
+    gap: 6px;
+}
+#mc-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;     /* rows anchor to right */
+    gap: 6px;
+}
+.mc-row {
+    display: flex;
+    flex-direction: row;
+    gap: 6px;
+}
+/* right cluster rows right-align their buttons */
+.mc-row-right { justify-content: flex-end; }
+
 /* ---- Base button style ---- */
 .mc-btn {
     width: 68px;
@@ -95,32 +116,16 @@ body {
         flex-shrink: 0;
     }
 
-    /* Both groups sit side-by-side in the row below the canvas */
-    #mc-left {
+    /* Both clusters sit side-by-side in the control bar below the canvas */
+    #mc-left, #mc-right {
         display: flex;
-        flex-direction: row;
-        align-items: center;
-        justify-content: flex-start;
-        gap: 8px;
         order: 1;
         flex: 1;
         padding: 10px 12px;
         background: #1a1a1a;
         position: static;   /* in document flow, NOT absolute */
     }
-
-    #mc-right {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        justify-content: flex-end;
-        gap: 8px;
-        order: 1;
-        flex: 1;
-        padding: 10px 12px;
-        background: #1a1a1a;
-        position: static;   /* in document flow, NOT absolute */
-    }
+    /* align-items already set in base: left=flex-start, right=flex-end */
 }
 
 
@@ -158,36 +163,28 @@ body {
 @media (orientation: landscape) and (max-height: 600px) {
     #btn-pause { display: block; }
 
-    /* Left cluster: fixed to viewport left gutter, centred vertically */
+    /* Left cluster: fixed in left gutter, anchored to bottom */
     #mc-left {
         display: flex;
-        flex-direction: column;
-        gap: 8px;
         position: fixed;
         left: 6px;
-        top: 50%;
-        transform: translateY(-50%);
+        bottom: 10px;
         z-index: 30;
         background: transparent;
         padding: 0;
     }
 
-    /* Right cluster: fixed to viewport right gutter, centred vertically */
+    /* Right cluster: fixed in right gutter, anchored to bottom */
     #mc-right {
         display: flex;
-        flex-direction: column;
-        gap: 8px;
         position: fixed;
         right: 6px;
-        top: 50%;
-        transform: translateY(-50%);
+        bottom: 10px;
         z-index: 30;
         background: transparent;
         padding: 0;
     }
 
-    .mc-btn        { width: 58px; height: 58px; font-size: 18px; border-radius: 10px; }
-    .mc-fire,
-    .mc-jump,
-    .mc-swap       { font-size: 12px; }
+    .mc-btn                    { width: 56px; height: 56px; font-size: 18px; border-radius: 10px; }
+    .mc-fire, .mc-jump, .mc-swap { font-size: 12px; }
 }

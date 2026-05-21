@@ -10,26 +10,40 @@
     <div id="game-wrapper">
         <canvas id="gameCanvas" width="800" height="600"></canvas>
 
-        <!-- Pause / fullscreen buttons (shown in landscape) -->
         <button type="button" id="btn-pause"      aria-label="Pause">II</button>
         <button type="button" id="btn-fullscreen" aria-label="Fullscreen">[ ]</button>
 
-        <!-- Left-hand controls (bottom-left overlay) -->
+        <!--
+            Left cluster layout:
+              SWAP
+              ◀  ▶
+        -->
         <div id="mc-left">
-            <button type="button" class="mc-btn" id="mc-btn-left"  aria-label="Move left">&#9664;</button>
-            <button type="button" class="mc-btn" id="mc-btn-right" aria-label="Move right">&#9654;</button>
-            <button type="button" class="mc-btn mc-swap" id="mc-btn-swap" aria-label="Cycle bullet">SWAP</button>
+            <div class="mc-row">
+                <button type="button" class="mc-btn mc-swap" id="mc-btn-swap"  aria-label="Cycle bullet">SWAP</button>
+            </div>
+            <div class="mc-row">
+                <button type="button" class="mc-btn" id="mc-btn-left"  aria-label="Move left">&#9664;</button>
+                <button type="button" class="mc-btn" id="mc-btn-right" aria-label="Move right">&#9654;</button>
+            </div>
         </div>
 
-        <!-- Right-hand controls (bottom-right overlay) -->
+        <!--
+            Right cluster layout:
+                       JUMP
+              FIRE  ▼
+        -->
         <div id="mc-right">
-            <button type="button" class="mc-btn mc-jump" id="mc-btn-up"   aria-label="Jump">JUMP</button>
-            <button type="button" class="mc-btn" id="mc-btn-down" aria-label="Drop">&#9660;</button>
-            <button type="button" class="mc-btn mc-fire" id="mc-btn-fire" aria-label="Shoot">FIRE</button>
+            <div class="mc-row mc-row-right">
+                <button type="button" class="mc-btn mc-jump" id="mc-btn-up"   aria-label="Jump">JUMP</button>
+            </div>
+            <div class="mc-row mc-row-right">
+                <button type="button" class="mc-btn mc-fire" id="mc-btn-fire" aria-label="Shoot">FIRE</button>
+                <button type="button" class="mc-btn"         id="mc-btn-down" aria-label="Drop">&#9660;</button>
+            </div>
         </div>
     </div>
 
-    <!-- Load order: base utilities first, then classes, then game logic -->
     <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/animations.js"></script>
