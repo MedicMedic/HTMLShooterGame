@@ -14,33 +14,27 @@
         <button type="button" id="btn-fullscreen" aria-label="Fullscreen">[ ]</button>
 
         <!--
-            Left cluster layout:
-              SWAP
-              ◀  ▶
+            Left cluster:
+              col1   col2
+            [ SWAP ]  ___     row 1
+            [  ◀  ] [ ▶ ]    row 2
         -->
         <div id="mc-left">
-            <div class="mc-row">
-                <button type="button" class="mc-btn mc-swap" id="mc-btn-swap"  aria-label="Cycle bullet">SWAP</button>
-            </div>
-            <div class="mc-row">
-                <button type="button" class="mc-btn" id="mc-btn-left"  aria-label="Move left">&#9664;</button>
-                <button type="button" class="mc-btn" id="mc-btn-right" aria-label="Move right">&#9654;</button>
-            </div>
+            <button type="button" class="mc-btn mc-swap" id="mc-btn-swap"  aria-label="Cycle">SWAP</button>
+            <button type="button" class="mc-btn"         id="mc-btn-left"  aria-label="Left">&#9664;</button>
+            <button type="button" class="mc-btn"         id="mc-btn-right" aria-label="Right">&#9654;</button>
         </div>
 
         <!--
-            Right cluster layout:
-                       JUMP
-              FIRE  ▼
+            Right cluster:
+              col1   col2
+               ___  [JUMP]    row 1
+            [FIRE] [ ▼  ]    row 2
         -->
         <div id="mc-right">
-            <div class="mc-row mc-row-right">
-                <button type="button" class="mc-btn mc-jump" id="mc-btn-up"   aria-label="Jump">JUMP</button>
-            </div>
-            <div class="mc-row mc-row-right">
-                <button type="button" class="mc-btn mc-fire" id="mc-btn-fire" aria-label="Shoot">FIRE</button>
-                <button type="button" class="mc-btn"         id="mc-btn-down" aria-label="Drop">&#9660;</button>
-            </div>
+            <button type="button" class="mc-btn mc-jump" id="mc-btn-up"   aria-label="Jump">JUMP</button>
+            <button type="button" class="mc-btn mc-fire" id="mc-btn-fire" aria-label="Fire">FIRE</button>
+            <button type="button" class="mc-btn"         id="mc-btn-down" aria-label="Drop">&#9660;</button>
         </div>
     </div>
 

@@ -26,10 +26,9 @@ body {
     touch-action: none;
 }
 
-/* ---- All overlay controls hidden by default ---- */
-#btn-pause,
-#mc-left,
-#mc-right { display: none; }
+/* ---- All control elements hidden by default ---- */
+#btn-pause, #btn-fullscreen,
+#mc-left, #mc-right { display: none; }
 
 /* ---- Pause / fullscreen buttons ---- */
 #btn-pause, #btn-fullscreen {
@@ -48,35 +47,38 @@ body {
     -webkit-tap-highlight-color: transparent;
 }
 #btn-pause      { top: 8px; right: 8px; }
-#btn-fullscreen { top: 8px; left: 8px; display: none; } /* only shown in landscape */
+#btn-fullscreen { top: 8px; left: 8px; }
 #btn-pause:active,
 #btn-fullscreen:active { background: rgba(255,215,0,0.35); border-color: #FFD700; }
 
-/* ---- Cluster layout ---- */
-#mc-left {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;   /* rows anchor to left */
-    gap: 6px;
-}
-#mc-right {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;     /* rows anchor to right */
-    gap: 6px;
-}
-.mc-row {
-    display: flex;
-    flex-direction: row;
-    gap: 6px;
-}
-/* right cluster rows right-align their buttons */
-.mc-row-right { justify-content: flex-end; }
+/* ============================================================
+   GRID LAYOUT — explicit cell placement, works everywhere
+   Left cluster          Right cluster
+     col1  col2            col1  col2
+   [SWAP]  ___    row 1    ___  [JUMP]
+   [ ◀  ][ ▶ ]   row 2   [FIRE][ ▼  ]
+   ============================================================ */
 
-/* ---- Base button style ---- */
+#mc-left, #mc-right {
+    display: grid;
+    gap: 6px;
+    /* cell sizes defined per media query below */
+}
+
+/* Left button positions */
+#mc-btn-swap  { grid-column: 1; grid-row: 1; }
+#mc-btn-left  { grid-column: 1; grid-row: 2; }
+#mc-btn-right { grid-column: 2; grid-row: 2; }
+
+/* Right button positions */
+#mc-btn-up   { grid-column: 2; grid-row: 1; }   /* JUMP */
+#mc-btn-fire { grid-column: 1; grid-row: 2; }
+#mc-btn-down { grid-column: 2; grid-row: 2; }
+
+/* ---- Button appearance ---- */
 .mc-btn {
-    width: 68px;
-    height: 68px;
+    width: 100%;
+    height: 100%;
     background: rgba(0,0,0,0.55);
     border: 2px solid rgba(255,255,255,0.3);
     border-radius: 12px;
@@ -93,98 +95,88 @@ body {
     user-select: none;
 }
 .mc-btn:active { background: rgba(255,255,255,0.2); border-color: #FFD700; color: #FFD700; }
-.mc-fire { background: rgba(180,40,15,0.55); border-color: rgba(220,70,30,0.7);  font-size: 13px; }
-.mc-jump { background: rgba(20,140,50,0.5);  border-color: rgba(40,180,70,0.7);  font-size: 13px; }
+.mc-fire { background: rgba(180,40,15,0.55); border-color: rgba(220,70,30,0.7); font-size: 13px; }
+.mc-jump { background: rgba(20,140,50,0.5);  border-color: rgba(40,180,70,0.7); font-size: 13px; }
 .mc-swap { background: rgba(30,90,200,0.5);  border-color: rgba(50,120,220,0.7); font-size: 13px; }
 
 
-/* =====================================================
-   PORTRAIT — controls bar below canvas
-   ===================================================== */
+/* ============================================================
+   PORTRAIT — control bar below canvas, clusters at corners
+   ============================================================ */
 @media (max-width: 820px) and (orientation: portrait) {
     #btn-pause { display: block; }
 
-    /* Wrap canvas + two button groups in a flex column */
+    /* Wrapper becomes flex-wrap so canvas fills top row
+       and the two clusters share the bottom row         */
     #game-wrapper {
         display: flex;
         flex-wrap: wrap;
+        justify-content: space-between; /* clusters to opposite corners */
+        background: #1a1a1a;            /* control bar background       */
     }
 
     #gameCanvas {
-        width: 100%;
         order: 0;
+        width: 100%;
         flex-shrink: 0;
     }
 
-    /* Both clusters sit side-by-side in the control bar below the canvas */
     #mc-left, #mc-right {
-        display: flex;
+        display: grid;
+        position: static;               /* in document flow, NOT absolute */
         order: 1;
-        flex: 1;
-        padding: 10px 12px;
-        background: #1a1a1a;
-        position: static;   /* in document flow, NOT absolute */
+        padding: 10px;
+        /* 68 px cells */
+        grid-template-columns: 68px 68px;
+        grid-template-rows: 68px 68px;
     }
-    /* align-items already set in base: left=flex-start, right=flex-end */
 }
 
 
-/* =====================================================
-   LANDSCAPE — canvas shrinks to fit height,
-   buttons are fixed in viewport side gutters
-   ===================================================== */
+/* ============================================================
+   LANDSCAPE — canvas fits screen height, buttons in corners
+   ============================================================ */
 @media (orientation: landscape) {
     body {
         justify-content: center;
         align-items: center;
-        /* svh = "small viewport height" (shrinks to exclude browser bar) */
-        /* Falls back to vh for browsers that don't support svh yet      */
         height: 100vh;
         height: 100svh;
         overflow: hidden;
     }
-
-    /* Wrapper width = whichever is smaller: 800px cap OR the width that
-       keeps the 4:3 canvas from overflowing the viewport height          */
     #game-wrapper {
+        /* Never wider than 800 px or wider than the aspect-correct height */
         max-width: min(800px, calc(100svh * 800 / 600));
         width: 100%;
     }
-
-    #gameCanvas {
-        width: 100%;
-        height: auto;
-    }
-
+    #gameCanvas { width: 100%; height: auto; }
     #btn-fullscreen { display: block; }
 }
 
-/* Show buttons only on landscape mobile (not desktop) */
+/* Show buttons only on landscape mobile (phones, small tablets) */
 @media (orientation: landscape) and (max-height: 600px) {
     #btn-pause { display: block; }
 
-    /* Left cluster: fixed in left gutter, anchored to bottom */
+    /* 56 px grid cells, fixed to bottom corners of viewport */
     #mc-left {
-        display: flex;
+        display: grid;
         position: fixed;
         left: 6px;
         bottom: 10px;
         z-index: 30;
-        background: transparent;
-        padding: 0;
+        grid-template-columns: 56px 56px;
+        grid-template-rows: 56px 56px;
     }
-
-    /* Right cluster: fixed in right gutter, anchored to bottom */
     #mc-right {
-        display: flex;
+        display: grid;
         position: fixed;
         right: 6px;
         bottom: 10px;
         z-index: 30;
-        background: transparent;
-        padding: 0;
+        grid-template-columns: 56px 56px;
+        grid-template-rows: 56px 56px;
     }
 
-    .mc-btn                    { width: 56px; height: 56px; font-size: 18px; border-radius: 10px; }
-    .mc-fire, .mc-jump, .mc-swap { font-size: 12px; }
+    .mc-btn                      { font-size: 16px; border-radius: 10px; }
+    .mc-fire, .mc-jump, .mc-swap { font-size: 11px; }
 }
