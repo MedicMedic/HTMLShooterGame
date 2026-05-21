@@ -135,6 +135,25 @@ function _wireMobileControls(game) {
     pauseBtn.addEventListener('click', () => game._togglePause());
   }
 
+  // Fullscreen button (landscape only)
+  const fsBtn = document.getElementById('btn-fullscreen');
+  if (fsBtn) {
+    const toggleFS = () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+        fsBtn.textContent = '[ X ]';
+      } else {
+        document.exitFullscreen().catch(() => {});
+        fsBtn.textContent = '[ ]';
+      }
+    };
+    fsBtn.addEventListener('click', toggleFS);
+    fsBtn.addEventListener('touchstart', e => { e.preventDefault(); toggleFS(); }, { passive: false });
+    document.addEventListener('fullscreenchange', () => {
+      fsBtn.textContent = document.fullscreenElement ? '[ X ]' : '[ ]';
+    });
+  }
+
   // CSS media queries handle showing/hiding controls automatically.
 }
 

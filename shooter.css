@@ -31,25 +31,26 @@ body {
 #mc-left,
 #mc-right { display: none; }
 
-/* ---- Pause button (top-right corner of canvas) ---- */
-#btn-pause {
+/* ---- Pause / fullscreen buttons ---- */
+#btn-pause, #btn-fullscreen {
     position: absolute;
-    top: 8px;
-    right: 8px;
     width: 42px;
     height: 42px;
     background: rgba(0,0,0,0.5);
     border: 1px solid rgba(255,255,255,0.3);
     border-radius: 8px;
     color: white;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: bold;
     cursor: pointer;
     z-index: 30;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
 }
-#btn-pause:active { background: rgba(255,215,0,0.35); border-color: #FFD700; }
+#btn-pause      { top: 8px; right: 8px; }
+#btn-fullscreen { top: 8px; left: 8px; display: none; } /* only shown in landscape */
+#btn-pause:active,
+#btn-fullscreen:active { background: rgba(255,215,0,0.35); border-color: #FFD700; }
 
 /* ---- Base button style ---- */
 .mc-btn {
@@ -131,22 +132,26 @@ body {
     body {
         justify-content: center;
         align-items: center;
+        /* svh = "small viewport height" (shrinks to exclude browser bar) */
+        /* Falls back to vh for browsers that don't support svh yet      */
         height: 100vh;
+        height: 100svh;
         overflow: hidden;
     }
 
-    /* Constrain wrapper so canvas never exceeds viewport height */
+    /* Wrapper width = whichever is smaller: 800px cap OR the width that
+       keeps the 4:3 canvas from overflowing the viewport height          */
     #game-wrapper {
-        /* min(800px, viewport-height × 4/3 aspect ratio) */
-        max-width: min(800px, calc(100vh * 800 / 600));
+        max-width: min(800px, calc(100svh * 800 / 600));
         width: 100%;
     }
 
-    /* Canvas fills wrapper width → height follows aspect ratio and fits in viewport */
     #gameCanvas {
         width: 100%;
         height: auto;
     }
+
+    #btn-fullscreen { display: block; }
 }
 
 /* Show buttons only on landscape mobile (not desktop) */
