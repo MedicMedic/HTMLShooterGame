@@ -135,12 +135,7 @@ function _wireMobileControls(game) {
     pauseBtn.addEventListener('click', () => game._togglePause());
   }
 
-  // Show controls on first touch (covers devices wider than the CSS breakpoint)
-  window.addEventListener('touchstart', () => {
-    document.getElementById('btn-pause').style.display = 'block';
-    document.getElementById('mc-left').style.display   = 'flex';
-    document.getElementById('mc-right').style.display  = 'flex';
-  }, { once: true });
+  // CSS media queries handle showing/hiding controls automatically.
 }
 
 // ===== Boot =====
